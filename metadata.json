@@ -1,0 +1,5 @@
+{
+  "name": "ApexAnalytics F1",
+  "description": "Advanced Formula 1 analysis web app featuring comparative telemetry, AI strategy prediction, 2026 calendar, and regulatory insights.",
+  "requestFramePermissions": []
+}
