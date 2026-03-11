@@ -3,15 +3,22 @@ import { Calendar as CalendarIcon, MapPin, Flag, Clock, ChevronRight, Loader2 } 
 import { format, formatDistanceToNow, isFuture } from 'date-fns';
 import axios from 'axios';
 
+interface RaceSession {
+  name: string;
+  date: string;
+}
+
 interface Race {
   round: number;
   name: string;
   circuit: string;
   date: string;
+  timezone: string;
   length: number;
   drsZones: number;
   record: string;
   history?: string;
+  sessions?: RaceSession[];
 }
 
 export default function Calendar() {
@@ -19,6 +26,20 @@ export default function Calendar() {
   const [races, setRaces] = useState<Race[]>([]);
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const [countdown, setCountdown] = useState<string>('');
+
+  const formatSessionTime = (dateString: string, trackTimezone?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const local = trackTimezone 
+        ? date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: trackTimezone, hour12: false })
+        : date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const cet = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
+      return `${local} Local / ${cet} CET`;
+    } catch (e) {
+      return '';
+    }
+  };
 
   useEffect(() => {
     const fetchCalendar = async () => {
@@ -113,7 +134,7 @@ export default function Calendar() {
                 <div className="text-right">
                   <p className="text-sm text-zinc-500 uppercase tracking-wider mb-1">Race Date</p>
                   <p className="text-2xl font-mono font-bold">{format(new Date(selectedRace.date), 'dd MMM yyyy')}</p>
-                  <p className="text-zinc-400 font-mono">{format(new Date(selectedRace.date), 'HH:mm')} Local Time</p>
+                  <p className="text-zinc-400 font-mono">{formatSessionTime(selectedRace.date, selectedRace.timezone)}</p>
                 </div>
               </div>
 
@@ -131,6 +152,40 @@ export default function Calendar() {
                   <p className="text-lg font-mono font-bold text-zinc-100 leading-tight">{selectedRace.record}</p>
                 </div>
               </div>
+
+              {selectedRace.sessions && selectedRace.sessions.length > 0 && (
+                <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 mb-8">
+                  <h3 className="text-lg font-bold text-zinc-200 mb-4 flex items-center">
+                    <Clock className="mr-2 text-red-500" size={20} />
+                    Weekend Schedule
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedRace.sessions.map((session, idx) => {
+                      const sessionDate = new Date(session.date);
+                      const localTime = selectedRace.timezone 
+                        ? sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: selectedRace.timezone, hour12: false })
+                        : sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                      const cetTime = sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
+                      const dayName = selectedRace.timezone
+                        ? sessionDate.toLocaleDateString('en-GB', { weekday: 'long', timeZone: selectedRace.timezone })
+                        : sessionDate.toLocaleDateString('en-GB', { weekday: 'long' });
+                      
+                      return (
+                        <div key={idx} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex justify-between items-center">
+                          <div>
+                            <p className="font-bold text-zinc-200">{session.name}</p>
+                            <p className="text-xs text-zinc-500 uppercase tracking-wider">{dayName}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-mono text-zinc-300">{localTime} <span className="text-xs text-zinc-500">Local</span></p>
+                            <p className="text-sm font-mono text-zinc-400">{cetTime} <span className="text-xs text-zinc-600">CET</span></p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {selectedRace.history && (
                 <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 flex-1">

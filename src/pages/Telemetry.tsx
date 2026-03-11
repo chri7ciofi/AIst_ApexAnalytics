@@ -21,6 +21,29 @@ export default function Telemetry() {
   
   const [loadingOptions, setLoadingOptions] = useState(false);
 
+  const formatSessionTime = (dateString: string, gmtOffset?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      
+      let localStr = '';
+      if (gmtOffset) {
+        const sign = gmtOffset.startsWith('-') ? -1 : 1;
+        const [hours, minutes] = gmtOffset.substring(1).split(':').map(Number);
+        const offsetMs = sign * (hours * 60 + minutes) * 60 * 1000;
+        const localDate = new Date(date.getTime() + offsetMs);
+        localStr = localDate.toISOString().substring(11, 16);
+      } else {
+        localStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+      }
+
+      const cet = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
+      return `(${localStr} Local / ${cet} CET)`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   // 1. Fetch Meetings (Races) when Year changes
   useEffect(() => {
     const fetchMeetings = async () => {
@@ -260,11 +283,14 @@ export default function Telemetry() {
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
               >
                 {sessions.length === 0 && <option value="">No sessions found</option>}
-                {sessions.map((s: any) => (
-                  <option key={s.session_key} value={s.session_key}>
-                    {s.session_name}
-                  </option>
-                ))}
+                {sessions.map((s: any) => {
+                  const selectedMeeting = meetings.find(m => m.meeting_key.toString() === meetingKey);
+                  return (
+                    <option key={s.session_key} value={s.session_key}>
+                      {s.session_name} {formatSessionTime(s.date_start, selectedMeeting?.gmt_offset)}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -320,9 +346,9 @@ export default function Telemetry() {
       </div>
 
       {data.length > 0 ? (
-        <div className="flex-1 grid grid-rows-3 gap-4 overflow-hidden">
+        <div className="flex-1 flex flex-col gap-6 overflow-y-auto pb-8 pr-2 custom-scrollbar">
           {/* Speed Chart */}
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col min-h-[350px] shrink-0">
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Speed (km/h)</h3>
@@ -334,22 +360,22 @@ export default function Telemetry() {
                 <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
-                  <YAxis domain={['auto', 'auto']} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}`} width={40} />
+                  <YAxis domain={['auto', 'auto']} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}`} width={40} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                     labelStyle={{ display: 'none' }}
                   />
                   <Legend verticalAlign="top" height={36} iconType="circle" />
-                  <Line type="monotone" dataKey="speed1" stroke="#3b82f6" strokeWidth={2} dot={false} name={`${d1Info?.name_acronym || driver1}`} />
-                  <Line type="monotone" dataKey="speed2" stroke="#ef4444" strokeWidth={2} dot={false} name={`${d2Info?.name_acronym || driver2}`} />
+                  <Line type="monotone" dataKey="speed1" stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`${d1Info?.name_acronym || driver1}`} />
+                  <Line type="monotone" dataKey="speed2" stroke="#ef4444" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`${d2Info?.name_acronym || driver2}`} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Throttle & Brake */}
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col min-h-[350px] shrink-0">
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Throttle (%) & Brake</h3>
@@ -361,24 +387,24 @@ export default function Telemetry() {
                 <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
-                  <YAxis domain={[0, 100]} stroke="#52525b" fontSize={12} width={40} />
+                  <YAxis domain={[0, 100]} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} width={40} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                     labelStyle={{ display: 'none' }}
                   />
                   <Legend verticalAlign="top" height={36} iconType="circle" />
-                  <Line type="stepAfter" dataKey="throttle1" stroke="#3b82f6" strokeWidth={2} dot={false} name={`Throttle ${d1Info?.name_acronym || driver1}`} />
-                  <Line type="stepAfter" dataKey="throttle2" stroke="#ef4444" strokeWidth={2} dot={false} name={`Throttle ${d2Info?.name_acronym || driver2}`} />
-                  <Line type="stepAfter" dataKey="brake1" stroke="#60a5fa" strokeDasharray="4 4" strokeWidth={2} dot={false} name={`Brake ${d1Info?.name_acronym || driver1}`} />
-                  <Line type="stepAfter" dataKey="brake2" stroke="#f87171" strokeDasharray="4 4" strokeWidth={2} dot={false} name={`Brake ${d2Info?.name_acronym || driver2}`} />
+                  <Line type="stepAfter" dataKey="throttle1" stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Throttle ${d1Info?.name_acronym || driver1}`} />
+                  <Line type="stepAfter" dataKey="throttle2" stroke="#ef4444" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Throttle ${d2Info?.name_acronym || driver2}`} />
+                  <Line type="stepAfter" dataKey="brake1" stroke="#60a5fa" strokeDasharray="4 4" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Brake ${d1Info?.name_acronym || driver1}`} />
+                  <Line type="stepAfter" dataKey="brake2" stroke="#f87171" strokeDasharray="4 4" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Brake ${d2Info?.name_acronym || driver2}`} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* RPM & Gear */}
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col min-h-[350px] shrink-0">
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">RPM & Gear</h3>
@@ -390,8 +416,8 @@ export default function Telemetry() {
                 <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}s`} />
-                  <YAxis yAxisId="left" domain={['auto', 'auto']} stroke="#52525b" fontSize={12} width={40} />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 8]} stroke="#52525b" fontSize={12} width={20} />
+                  <YAxis yAxisId="left" domain={['auto', 'auto']} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} width={40} />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, 8]} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} width={20} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
@@ -399,10 +425,10 @@ export default function Telemetry() {
                     labelFormatter={(label) => `Time: ${label}s`}
                   />
                   <Legend verticalAlign="top" height={36} iconType="circle" />
-                  <Line yAxisId="left" type="monotone" dataKey="rpm1" stroke="#3b82f6" strokeWidth={1} dot={false} name={`RPM ${d1Info?.name_acronym || driver1}`} />
-                  <Line yAxisId="left" type="monotone" dataKey="rpm2" stroke="#ef4444" strokeWidth={1} dot={false} name={`RPM ${d2Info?.name_acronym || driver2}`} />
-                  <Line yAxisId="right" type="stepAfter" dataKey="gear1" stroke="#93c5fd" strokeWidth={2} dot={false} name={`Gear ${d1Info?.name_acronym || driver1}`} />
-                  <Line yAxisId="right" type="stepAfter" dataKey="gear2" stroke="#fca5a5" strokeWidth={2} dot={false} name={`Gear ${d2Info?.name_acronym || driver2}`} />
+                  <Line yAxisId="left" type="monotone" dataKey="rpm1" stroke="#3b82f6" strokeWidth={1.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`RPM ${d1Info?.name_acronym || driver1}`} />
+                  <Line yAxisId="left" type="monotone" dataKey="rpm2" stroke="#ef4444" strokeWidth={1.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`RPM ${d2Info?.name_acronym || driver2}`} />
+                  <Line yAxisId="right" type="stepAfter" dataKey="gear1" stroke="#93c5fd" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Gear ${d1Info?.name_acronym || driver1}`} />
+                  <Line yAxisId="right" type="stepAfter" dataKey="gear2" stroke="#fca5a5" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Gear ${d2Info?.name_acronym || driver2}`} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

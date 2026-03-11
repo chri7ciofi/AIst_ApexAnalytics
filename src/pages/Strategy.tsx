@@ -23,6 +23,29 @@ export default function Strategy() {
   
   const [loadingOptions, setLoadingOptions] = useState(false);
 
+  const formatSessionTime = (dateString: string, gmtOffset?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      
+      let localStr = '';
+      if (gmtOffset) {
+        const sign = gmtOffset.startsWith('-') ? -1 : 1;
+        const [hours, minutes] = gmtOffset.substring(1).split(':').map(Number);
+        const offsetMs = sign * (hours * 60 + minutes) * 60 * 1000;
+        const localDate = new Date(date.getTime() + offsetMs);
+        localStr = localDate.toISOString().substring(11, 16);
+      } else {
+        localStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+      }
+
+      const cet = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
+      return `(${localStr} Local / ${cet} CET)`;
+    } catch (e) {
+      return '';
+    }
+  };
+
   // 1. Fetch Meetings
   useEffect(() => {
     const fetchMeetings = async () => {
@@ -310,11 +333,14 @@ export default function Strategy() {
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
               >
                 {sessions.length === 0 && <option value="">No sessions found</option>}
-                {sessions.map((s: any) => (
-                  <option key={s.session_key} value={s.session_key}>
-                    {s.session_name}
-                  </option>
-                ))}
+                {sessions.map((s: any) => {
+                  const selectedMeeting = meetings.find(m => m.meeting_key.toString() === meetingKey);
+                  return (
+                    <option key={s.session_key} value={s.session_key}>
+                      {s.session_name} {formatSessionTime(s.date_start, selectedMeeting?.gmt_offset)}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -370,9 +396,9 @@ export default function Strategy() {
       </div>
 
       {lapsData.length > 0 ? (
-        <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
+        <div className="flex flex-col xl:grid xl:grid-cols-3 gap-6 flex-1 overflow-y-auto pb-8 pr-2 custom-scrollbar">
           {/* Degradation Model */}
-          <div className="col-span-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 flex flex-col">
+          <div className="xl:col-span-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 flex flex-col min-h-[450px]">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h3 className="text-lg font-bold flex items-center">
@@ -390,7 +416,7 @@ export default function Strategy() {
                 <LineChart data={lapsData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="lap" stroke="#52525b" fontSize={12} label={{ value: 'Lap Number', position: 'insideBottom', offset: -10, fill: '#a1a1aa', fontSize: 12 }} />
-                  <YAxis domain={['auto', 'auto']} stroke="#52525b" fontSize={12} tickFormatter={(val) => formatTime(val)} width={60} />
+                  <YAxis domain={['auto', 'auto']} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} tickFormatter={(val) => formatTime(val)} width={60} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
@@ -401,12 +427,12 @@ export default function Strategy() {
                   <Legend verticalAlign="top" height={36} iconType="circle" />
                   
                   {/* Actual Lap Times */}
-                  <Line type="monotone" dataKey="time1" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }} name={`${d1Info?.name_acronym || driver1} Actual`} connectNulls />
-                  <Line type="monotone" dataKey="time2" stroke="#ef4444" strokeWidth={2} dot={{ r: 3, fill: '#ef4444', strokeWidth: 0 }} name={`${d2Info?.name_acronym || driver2} Actual`} connectNulls />
+                  <Line type="monotone" dataKey="time1" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} name={`${d1Info?.name_acronym || driver1} Actual`} connectNulls />
+                  <Line type="monotone" dataKey="time2" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4, fill: '#ef4444', strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} name={`${d2Info?.name_acronym || driver2} Actual`} connectNulls />
                   
                   {/* Trend Lines */}
-                  <Line type="monotone" dataKey="trend1" stroke="#93c5fd" strokeWidth={2} strokeDasharray="5 5" dot={false} name={`${d1Info?.name_acronym || driver1} Trend`} connectNulls />
-                  <Line type="monotone" dataKey="trend2" stroke="#fca5a5" strokeWidth={2} strokeDasharray="5 5" dot={false} name={`${d2Info?.name_acronym || driver2} Trend`} connectNulls />
+                  <Line type="monotone" dataKey="trend1" stroke="#93c5fd" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={false} name={`${d1Info?.name_acronym || driver1} Trend`} connectNulls />
+                  <Line type="monotone" dataKey="trend2" stroke="#fca5a5" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={false} name={`${d2Info?.name_acronym || driver2} Trend`} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </div>
