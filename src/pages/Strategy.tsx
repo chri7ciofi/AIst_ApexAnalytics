@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { AlertTriangle, Clock, TrendingDown, ArrowRightLeft, Loader2, Activity, BrainCircuit, Sparkles } from 'lucide-react';
+import { AlertTriangle, Clock, TrendingDown, ArrowRightLeft, Loader2, Activity, BrainCircuit, Sparkles, Send } from 'lucide-react';
 import axios from 'axios';
 import { useRaceSelector } from '../hooks/useRaceSelector';
 import RaceSelector from '../components/RaceSelector';
@@ -11,8 +11,10 @@ export default function Strategy() {
   const [lapsData, setLapsData] = useState<StrategyLapPoint[]>([]);
   const [pitWindow, setPitWindow] = useState({ open: 15, close: 22, current: 18 });
   const [alerts, setAlerts] = useState<{ type: string; msg: string }[]>([]);
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model', text: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
   const [loadingAi, setLoadingAi] = useState(false);
+  const [contextData, setContextData] = useState<string | null>(null);
 
   const selector = useRaceSelector();
 
@@ -163,11 +165,18 @@ Driver 1 (${n1}): Degradation trend +${reg1.slope.toFixed(3)}s per lap. Longest 
 Driver 2 (${n2}): Degradation trend +${reg2.slope.toFixed(3)}s per lap. Longest stint: ${stintLaps2.length} laps.
 Observed Pit Window: Around lap ${currentP}.
       `;
-      axios.post('/api/ai/strategy', { promptData })
-        .then(res => setAiSuggestion(res.data.suggestion))
+      
+      setContextData(promptData);
+      setChatHistory([]); // Reset chat on new analysis
+
+      // Trigger initial AI Strategy Prediction
+      axios.post('/api/ai/strategy', { promptData, message: "Provide a concise, high-level race strategy prediction and analysis." })
+        .then(res => {
+          setChatHistory([{ role: 'model', text: res.data.suggestion }]);
+        })
         .catch(err => {
           console.error("AI Error", err);
-          setAiSuggestion("AI Strategy unavailable. Please ensure GEMINI_API_KEY is set in .env.");
+          setChatHistory([{ role: 'model', text: "AI Strategy unavailable. Please ensure GEMINI_API_KEY is set in .env." }]);
         })
         .finally(() => setLoadingAi(false));
 
@@ -185,6 +194,34 @@ Observed Pit Window: Around lap ${currentP}.
     const mins = Math.floor(seconds / 60);
     const secs = (seconds % 60).toFixed(3);
     return `${mins > 0 ? mins + ':' : ''}${secs.padStart(mins > 0 ? 6 : 5, '0')}`;
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || loadingAi) return;
+
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    setChatHistory(prev => [...prev, { role: 'user', text: userMsg }]);
+    setLoadingAi(true);
+
+    try {
+      const res = await axios.post('/api/ai/strategy', {
+        history: chatHistory,
+        message: userMsg
+      });
+      setChatHistory(prev => [...prev, { role: 'model', text: res.data.suggestion }]);
+    } catch (err) {
+      console.error("Chat Error", err);
+      setChatHistory(prev => [...prev, { role: 'model', text: "Sorry, I couldn't process your request." }]);
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
   };
 
   const d1Name = selector.d1Info?.name_acronym || selector.driver1;
@@ -312,30 +349,65 @@ Observed Pit Window: Around lap ${currentP}.
               </div>
             </div>
 
-            {/* AI Strategy Suggestion */}
-            <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 flex flex-col relative overflow-hidden">
+            {/* AI Strategy Chatbot */}
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800 flex flex-col relative overflow-hidden h-[400px]">
               {/* Background gradient for AI */}
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 pointer-events-none"></div>
               
-              <h3 className="text-lg font-bold flex items-center mb-4 shrink-0 relative z-10">
-                <BrainCircuit className="mr-2 text-indigo-400" size={20} />
-                AI Strategy Suggestion
-                <Sparkles className="ml-2 text-indigo-500/50" size={16} />
-              </h3>
+              <div className="p-4 border-b border-zinc-800/50 relative z-10 shrink-0 bg-zinc-900/50 backdrop-blur">
+                <h3 className="text-lg font-bold flex items-center">
+                  <BrainCircuit className="mr-2 text-indigo-400" size={20} />
+                  AI Strategy Assistant
+                  <Sparkles className="ml-2 text-indigo-500/50" size={16} />
+                </h3>
+              </div>
 
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar text-sm text-zinc-300 leading-relaxed relative z-10">
-                {loadingAi ? (
-                  <div className="flex flex-col items-center justify-center h-full py-4 opacity-70">
-                    <Loader2 className="animate-spin text-indigo-400 mb-2" size={24} />
-                    <span className="text-xs text-indigo-300 animate-pulse">Running GenAI Strategy Models...</span>
-                  </div>
-                ) : aiSuggestion ? (
-                  <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl whitespace-pre-line text-indigo-100">
-                    {aiSuggestion}
-                  </div>
-                ) : (
-                  <div className="text-zinc-500 py-4 text-center">Analyze data to generate AI insights.</div>
+              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar text-sm flex flex-col space-y-4 relative z-10">
+                {chatHistory.length === 0 && !loadingAi && (
+                  <div className="text-zinc-500 py-4 text-center my-auto">Analyze data to start the AI Strategy Chat.</div>
                 )}
+                
+                {chatHistory.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`px-4 py-2.5 rounded-2xl max-w-[85%] whitespace-pre-line leading-relaxed ${
+                      msg.role === 'user' 
+                        ? 'bg-zinc-800 text-zinc-200 rounded-br-sm' 
+                        : 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-100 rounded-bl-sm'
+                    }`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+
+                {loadingAi && (
+                  <div className="flex justify-start">
+                    <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-2">
+                       <Loader2 className="animate-spin text-indigo-400" size={16} />
+                       <span className="text-xs text-indigo-300 animate-pulse font-medium">Processing...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 bg-zinc-950/50 border-t border-zinc-800/50 relative z-10 shrink-0">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Ask about strategy, tyres..."
+                    disabled={loadingAi || chatHistory.length === 0}
+                    className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 transition-all shadow-inner"
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={loadingAi || !chatInput.trim() || chatHistory.length === 0}
+                    className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white rounded-xl px-4 py-2 transition-colors flex items-center justify-center"
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
               </div>
             </div>
 

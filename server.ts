@@ -163,31 +163,54 @@ async function startServer() {
     ]);
   });
 
-  // AI Strategy Predictor Endpoint
+  // AI Strategy Predictor Endpoint (Chatbot Deterministico)
   app.post("/api/ai/strategy", async (req, res) => {
     try {
       if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ error: "GEMINI_API_KEY is not configured in the environment." });
       }
 
-      const { promptData } = req.body;
-      if (!promptData) {
-        return res.status(400).json({ error: "Missing promptData in request body." });
+      const { promptData, history = [], message } = req.body;
+      if (!message && !promptData) {
+        return res.status(400).json({ error: "Missing message or promptData in request." });
       }
 
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      
+      let contents = [];
+      const systemContext = "You are an expert F1 Race Strategist. Answer questions accurately based on the telemetry and degradation data provided. Keep responses concise, analytical, and professional. Format with short paragraphs or bullet points.";
+      
+      // If it's the first message, we inject the context
+      if (promptData) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: `${systemContext}\n\nHere is the current race data:\n${promptData}\n\nUser Question: ${message || 'What is your recommended strategy?'}` }]
+        });
+      } else {
+        // Build history
+        contents = history.map((msg: any) => ({
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text }]
+        }));
+        // Add new user message
+        contents.push({
+          role: 'user',
+          parts: [{ text: message }]
+        });
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: `You are an expert F1 Race Strategist. Based on the following race data, provide a concise, high-level race strategy prediction and analysis. Discuss likely pit stop strategies (1-stop vs 2-stop), optimal tyre choices (Softs, Mediums, Hards), undercut potential, and track-specific factors (e.g., tyre degradation, overtaking difficulty). Keep it under 200 words, use a professional but engaging tone, and format the response with bullet points if helpful.
-
-Event Data Context:
-${promptData}`
+        contents,
+        config: {
+          temperature: 0.0 // Deterministico
+        }
       });
 
       res.json({ suggestion: response.text });
     } catch (error: any) {
       console.error("AI Strategy Error:", error);
-      res.status(500).json({ error: "Failed to generate AI strategy. Please try again later." });
+      res.status(500).json({ error: "Failed to generate AI response. Please try again later." });
     }
   });
 

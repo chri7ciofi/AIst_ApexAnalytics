@@ -14,6 +14,7 @@ interface RaceSelectorProps {
   loadingOptions: boolean;
   loading: boolean;
   error: string | null;
+  hideMeeting?: boolean; // Added hideMeeting prop
 
   setYear: (year: string) => void;
   setMeetingKey: (key: string) => void;
@@ -32,6 +33,7 @@ export default function RaceSelector({
   loadingOptions, loading, error,
   setYear, setMeetingKey, setSessionKey, setDriver1, setDriver2,
   onAnalyze, analyzeDisabled, analyzeLabel = 'Analyze',
+  hideMeeting = false, // Destructured and given a default value
 }: RaceSelectorProps) {
 
   const isDisabled = loading || loadingOptions;
@@ -64,44 +66,48 @@ export default function RaceSelector({
               <option value="2023">2023</option>
               <option value="2022">2022</option>
             </select>
-            <select
-              value={meetingKey}
-              onChange={e => setMeetingKey(e.target.value)}
-              disabled={isDisabled || meetings.length === 0}
-              className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium truncate"
-            >
-              {meetings.length === 0 && <option value="">No meetings found</option>}
-              {meetings.map((m) => (
-                <option key={m.meeting_key} value={m.meeting_key}>
-                  {m.meeting_name}
-                </option>
-              ))}
-            </select>
+            {!hideMeeting && ( // Conditional rendering based on hideMeeting
+              <select
+                value={meetingKey}
+                onChange={e => setMeetingKey(e.target.value)}
+                disabled={isDisabled || meetings.length === 0}
+                className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium truncate"
+              >
+                {meetings.length === 0 && <option value="">No meetings found</option>}
+                {meetings.map((m) => (
+                  <option key={m.meeting_key} value={m.meeting_key}>
+                    {m.meeting_name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
         {/* Session Selection */}
-        <div className="lg:col-span-3 space-y-2">
-          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Flag size={14} /> Session
-          </label>
-          <select
-            value={sessionKey}
-            onChange={e => setSessionKey(e.target.value)}
-            disabled={isDisabled || sessions.length === 0}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
-          >
-            {sessions.length === 0 && <option value="">No sessions found</option>}
-            {sessions.map((s) => {
-              const selectedMeeting = meetings.find(m => m.meeting_key.toString() === meetingKey);
-              return (
-                <option key={s.session_key} value={s.session_key}>
-                  {s.session_name} {formatSessionTime(s.date_start, selectedMeeting?.gmt_offset)}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+        {!hideMeeting && ( // Conditional rendering based on hideMeeting
+          <div className="lg:col-span-3 space-y-2">
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Flag size={14} /> Session
+            </label>
+            <select
+              value={sessionKey}
+              onChange={e => setSessionKey(e.target.value)}
+              disabled={isDisabled || sessions.length === 0}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
+            >
+              {sessions.length === 0 && <option value="">No sessions found</option>}
+              {sessions.map((s) => {
+                const selectedMeeting = meetings.find(m => m.meeting_key.toString() === meetingKey);
+                return (
+                  <option key={s.session_key} value={s.session_key}>
+                    {s.session_name} {formatSessionTime(s.date_start, selectedMeeting?.gmt_offset)}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
 
         {/* Driver Comparison & Action */}
         <div className="lg:col-span-4 space-y-2">

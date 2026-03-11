@@ -116,3 +116,53 @@ export interface StrategyLapPoint {
   trend1: number | null;
   trend2: number | null;
 }
+
+// === Ergast (Jolpi API) Types ===
+
+export interface ErgastDriver {
+  driverId: string;
+  permanentNumber: string;
+  code: string;
+  givenName: string;
+  familyName: string;
+  dateOfBirth: string;
+  nationality: string;
+}
+
+export interface ErgastConstructor {
+  constructorId: string;
+  url: string;
+  name: string;
+  nationality: string;
+}
+
+export interface ErgastDriverStanding {
+  position: string;
+  positionText: string;
+  points: string;
+  wins: string;
+  Driver: ErgastDriver;
+  Constructors: ErgastConstructor[];
+}
+
+export interface ErgastConstructorStanding {
+  position: string;
+  positionText: string;
+  points: string;
+  wins: string;
+  Constructor: ErgastConstructor;
+}
+
+export interface ErgastResponse<T> {
+  MRData: {
+    StandingsTable: {
+      season: string;
+      StandingsLists: {
+        season: string;
+        round: string;
+        DriverStandings?: T[];
+        ConstructorStandings?: T[];
+      }[];
+    };
+  };
+}
