@@ -400,13 +400,13 @@ export default function Strategy() {
               </h3>
               
               <div className="relative pt-6 pb-2">
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden relative">
                   <div 
-                    className="h-full bg-yellow-500/20 absolute top-6 transition-all duration-500"
+                    className="h-full bg-yellow-500/20 absolute top-0 transition-all duration-500"
                     style={{ left: `${(pitWindow.open/Math.max(lapsData.length, 1))*100}%`, width: `${((pitWindow.close - pitWindow.open)/Math.max(lapsData.length, 1))*100}%` }}
                   ></div>
                   <div 
-                    className="h-full bg-yellow-500 absolute top-6 rounded-full transition-all duration-500"
+                    className="h-full bg-yellow-500 absolute top-0 rounded-full transition-all duration-500"
                     style={{ left: `${(pitWindow.current/Math.max(lapsData.length, 1))*100}%`, width: '4px' }}
                   ></div>
                 </div>

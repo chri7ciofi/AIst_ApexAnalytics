@@ -142,32 +142,49 @@ export default function Telemetry() {
       const endTime2 = new Date(new Date(fastestLap2.date_start).getTime() + fastestLap2.lap_duration * 1000).toISOString();
       
       // 2. Fetch car data for the specific time window of the fastest lap
-      const [res1, res2] = await Promise.all([
-        axios.get(`/api/openf1/car_data?driver_number=${driver1}&session_key=${sessionKey}&date>=${fastestLap1.date_start}&date<=${endTime1}`),
-        axios.get(`/api/openf1/car_data?driver_number=${driver2}&session_key=${sessionKey}&date>=${fastestLap2.date_start}&date<=${endTime2}`)
-      ]);
+      // Fetch sequentially to avoid 429 Too Many Requests
+      const res1 = await axios.get(`/api/openf1/car_data?driver_number=${driver1}&session_key=${sessionKey}&date>=${fastestLap1.date_start}&date<=${endTime1}`);
+      const res2 = await axios.get(`/api/openf1/car_data?driver_number=${driver2}&session_key=${sessionKey}&date>=${fastestLap2.date_start}&date<=${endTime2}`);
       
       const d1 = res1.data;
       const d2 = res2.data;
 
       if (d1.length > 0 && d2.length > 0) {
         const mergedData = [];
-        const maxLength = Math.min(d1.length, d2.length);
+        const startTime1 = new Date(fastestLap1.date_start).getTime();
+        const startTime2 = new Date(fastestLap2.date_start).getTime();
         
-        for (let i = 0; i < maxLength; i++) {
+        let j = 0;
+        for (let i = 0; i < d1.length; i++) {
+          const relTime1 = new Date(d1[i].date).getTime() - startTime1;
+          
+          while (j < d2.length - 1) {
+            const relTime2 = new Date(d2[j].date).getTime() - startTime2;
+            const nextRelTime2 = new Date(d2[j+1].date).getTime() - startTime2;
+            
+            if (Math.abs(nextRelTime2 - relTime1) <= Math.abs(relTime2 - relTime1)) {
+              j++;
+            } else {
+              break;
+            }
+          }
+          
+          const d2Sample = d2[j] || {};
+          
           mergedData.push({
-            distance: i * 10, // Assuming roughly 10m per sample for visualization purposes
+            time: Number((relTime1 / 1000).toFixed(2)), // seconds
+            distance: i * 10, // Keep distance for compatibility if needed, but time is better
             speed1: d1[i]?.speed || 0,
             throttle1: d1[i]?.throttle || 0,
             brake1: d1[i]?.brake || 0,
             gear1: d1[i]?.n_gear || 0,
             rpm1: d1[i]?.rpm || 0,
             
-            speed2: d2[i]?.speed || 0,
-            throttle2: d2[i]?.throttle || 0,
-            brake2: d2[i]?.brake || 0,
-            gear2: d2[i]?.n_gear || 0,
-            rpm2: d2[i]?.rpm || 0,
+            speed2: d2Sample.speed || 0,
+            throttle2: d2Sample.throttle || 0,
+            brake2: d2Sample.brake || 0,
+            gear2: d2Sample.n_gear || 0,
+            rpm2: d2Sample.rpm || 0,
           });
         }
         setData(mergedData);
@@ -291,7 +308,7 @@ export default function Telemetry() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                  <XAxis dataKey="distance" hide />
+                  <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
                   <YAxis domain={['auto', 'auto']} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}`} width={40} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
@@ -312,7 +329,7 @@ export default function Telemetry() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                  <XAxis dataKey="distance" hide />
+                  <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
                   <YAxis domain={[0, 100]} stroke="#52525b" fontSize={12} width={40} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
@@ -335,14 +352,14 @@ export default function Telemetry() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                  <XAxis dataKey="distance" stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}m`} />
+                  <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}s`} />
                   <YAxis yAxisId="left" domain={['auto', 'auto']} stroke="#52525b" fontSize={12} width={40} />
                   <YAxis yAxisId="right" orientation="right" domain={[0, 8]} stroke="#52525b" fontSize={12} width={20} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                     labelStyle={{ color: '#a1a1aa', fontSize: '12px', marginBottom: '4px' }}
-                    labelFormatter={(label) => `Distance: ${label}m`}
+                    labelFormatter={(label) => `Time: ${label}s`}
                   />
                   <Line yAxisId="left" type="monotone" dataKey="rpm1" stroke="#3b82f6" strokeWidth={1} dot={false} name={`RPM ${d1Info?.name_acronym || driver1}`} />
                   <Line yAxisId="left" type="monotone" dataKey="rpm2" stroke="#ef4444" strokeWidth={1} dot={false} name={`RPM ${d2Info?.name_acronym || driver2}`} />

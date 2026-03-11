@@ -33,6 +33,7 @@ async function startServer() {
       
       const query = new URLSearchParams(queryObj as Record<string, string>).toString();
       const url = `https://api.openf1.org/v1/${path}${query ? "?" + query : ""}`;
+      console.log("OpenF1 Proxy URL:", url);
       
       // Check cache
       const cached = cache.get(url);
