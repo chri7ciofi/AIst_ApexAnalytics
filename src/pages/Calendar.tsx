@@ -11,6 +11,7 @@ interface Race {
   length: number;
   drsZones: number;
   record: string;
+  history?: string;
 }
 
 export default function Calendar() {
@@ -130,6 +131,18 @@ export default function Calendar() {
                   <p className="text-lg font-mono font-bold text-zinc-100 leading-tight">{selectedRace.record}</p>
                 </div>
               </div>
+
+              {selectedRace.history && (
+                <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 flex-1">
+                  <h3 className="text-lg font-bold text-zinc-200 mb-3 flex items-center">
+                    <Flag className="mr-2 text-red-500" size={20} />
+                    Historical Context
+                  </h3>
+                  <p className="text-zinc-400 leading-relaxed">
+                    {selectedRace.history}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

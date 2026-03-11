@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Scatter } from 'recharts';
-import { AlertTriangle, Clock, TrendingDown, ArrowRightLeft, Loader2, Play, Activity } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Scatter, Legend } from 'recharts';
+import { AlertTriangle, Clock, TrendingDown, ArrowRightLeft, Loader2, Play, Activity, Calendar, Flag, Users } from 'lucide-react';
 import axios from 'axios';
 
 export default function Strategy() {
@@ -261,91 +261,111 @@ export default function Strategy() {
           <p className="text-zinc-400 mt-1">Real-time degradation and pit-stop analysis powered by OpenF1</p>
         </div>
         
-        <div className="flex flex-wrap gap-3 bg-zinc-900 p-3 rounded-xl border border-zinc-800 items-center">
-          {/* Year Selection */}
-          <select 
-            value={year} 
-            onChange={e => setYear(e.target.value)} 
-            disabled={loadingOptions || loading}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 disabled:opacity-50"
-          >
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-          </select>
+        <div className="bg-zinc-900/50 p-5 rounded-2xl border border-zinc-800/80 backdrop-blur-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            
+            {/* Event Selection */}
+            <div className="lg:col-span-5 space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar size={14} /> Event Details
+              </label>
+              <div className="flex gap-2">
+                <select 
+                  value={year} 
+                  onChange={e => setYear(e.target.value)} 
+                  disabled={loadingOptions || loading}
+                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
+                >
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                </select>
+                <select 
+                  value={meetingKey} 
+                  onChange={e => setMeetingKey(e.target.value)} 
+                  disabled={loadingOptions || loading || meetings.length === 0}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium truncate"
+                >
+                  {meetings.length === 0 && <option value="">No meetings found</option>}
+                  {meetings.map((m: any) => (
+                    <option key={m.meeting_key} value={m.meeting_key}>
+                      {m.meeting_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-          {/* Meeting Selection */}
-          <select 
-            value={meetingKey} 
-            onChange={e => setMeetingKey(e.target.value)} 
-            disabled={loadingOptions || loading || meetings.length === 0}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 disabled:opacity-50 max-w-[200px] truncate"
-          >
-            {meetings.length === 0 && <option value="">No meetings found</option>}
-            {meetings.map((m: any) => (
-              <option key={m.meeting_key} value={m.meeting_key}>
-                {m.meeting_name}
-              </option>
-            ))}
-          </select>
+            {/* Session Selection */}
+            <div className="lg:col-span-3 space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Flag size={14} /> Session
+              </label>
+              <select 
+                value={sessionKey} 
+                onChange={e => setSessionKey(e.target.value)} 
+                disabled={loadingOptions || loading || sessions.length === 0}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
+              >
+                {sessions.length === 0 && <option value="">No sessions found</option>}
+                {sessions.map((s: any) => (
+                  <option key={s.session_key} value={s.session_key}>
+                    {s.session_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* Session Selection */}
-          <select 
-            value={sessionKey} 
-            onChange={e => setSessionKey(e.target.value)} 
-            disabled={loadingOptions || loading || sessions.length === 0}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 disabled:opacity-50"
-          >
-            {sessions.length === 0 && <option value="">No sessions found</option>}
-            {sessions.map((s: any) => (
-              <option key={s.session_key} value={s.session_key}>
-                {s.session_name}
-              </option>
-            ))}
-          </select>
+            {/* Driver Comparison & Action */}
+            <div className="lg:col-span-4 space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Users size={14} /> Compare Drivers
+              </label>
+              <div className="flex gap-3 items-center">
+                <select 
+                  value={driver1} 
+                  onChange={e => setDriver1(e.target.value)} 
+                  disabled={loadingOptions || loading || drivers.length === 0}
+                  className="flex-1 bg-blue-950/20 border border-blue-900/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-blue-400 font-bold disabled:opacity-50 transition-all"
+                >
+                  {drivers.length === 0 && <option value="">No drivers</option>}
+                  {drivers.map((d: any) => (
+                    <option key={`d1-${d.driver_number}`} value={d.driver_number}>
+                      {d.name_acronym} ({d.driver_number})
+                    </option>
+                  ))}
+                </select>
+                
+                <span className="text-zinc-600 font-black italic text-sm">VS</span>
+                
+                <select 
+                  value={driver2} 
+                  onChange={e => setDriver2(e.target.value)} 
+                  disabled={loadingOptions || loading || drivers.length === 0}
+                  className="flex-1 bg-red-950/20 border border-red-900/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-500 font-bold disabled:opacity-50 transition-all"
+                >
+                  {drivers.length === 0 && <option value="">No drivers</option>}
+                  {drivers.map((d: any) => (
+                    <option key={`d2-${d.driver_number}`} value={d.driver_number}>
+                      {d.name_acronym} ({d.driver_number})
+                    </option>
+                  ))}
+                </select>
 
-          <div className="w-px h-6 bg-zinc-800 mx-1"></div>
+                <button 
+                  onClick={generateStrategyData}
+                  disabled={loading || loadingOptions || !sessionKey || !driver1 || !driver2}
+                  className="bg-zinc-100 hover:bg-white text-zinc-900 disabled:bg-zinc-800 disabled:text-zinc-500 px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:shadow-none"
+                >
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} className="mr-1.5" />}
+                  {loading ? '' : 'Analyze'}
+                </button>
+              </div>
+            </div>
 
-          {/* Driver 1 Selection */}
-          <select 
-            value={driver1} 
-            onChange={e => setDriver1(e.target.value)} 
-            disabled={loadingOptions || loading || drivers.length === 0}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-blue-400 font-bold disabled:opacity-50"
-          >
-            {drivers.length === 0 && <option value="">No drivers</option>}
-            {drivers.map((d: any) => (
-              <option key={`d1-${d.driver_number}`} value={d.driver_number}>
-                {d.name_acronym} ({d.driver_number})
-              </option>
-            ))}
-          </select>
-
-          {/* Driver 2 Selection */}
-          <select 
-            value={driver2} 
-            onChange={e => setDriver2(e.target.value)} 
-            disabled={loadingOptions || loading || drivers.length === 0}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 text-red-500 font-bold disabled:opacity-50"
-          >
-            {drivers.length === 0 && <option value="">No drivers</option>}
-            {drivers.map((d: any) => (
-              <option key={`d2-${d.driver_number}`} value={d.driver_number}>
-                {d.name_acronym} ({d.driver_number})
-              </option>
-            ))}
-          </select>
-          
-          <button 
-            onClick={generateStrategyData}
-            disabled={loading || loadingOptions || !sessionKey || !driver1 || !driver2}
-            className="ml-auto bg-red-600 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin mr-2" /> : <Play size={16} className="mr-2" />}
-            Analyze
-          </button>
+          </div>
         </div>
       </div>
 
@@ -353,14 +373,15 @@ export default function Strategy() {
         <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
           {/* Degradation Model */}
           <div className="col-span-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold flex items-center">
-                <TrendingDown className="mr-2 text-red-500" size={20} />
-                Tyre Degradation Model (Real Data)
-              </h3>
-              <div className="flex space-x-4 text-sm">
-                <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>{d1Info?.name_acronym || driver1}</div>
-                <div className="flex items-center"><div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>{d2Info?.name_acronym || driver2}</div>
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-lg font-bold flex items-center">
+                  <TrendingDown className="mr-2 text-red-500" size={20} />
+                  Tyre Degradation Model (Real Data)
+                </h3>
+                <p className="text-sm text-zinc-400 mt-2 max-w-2xl">
+                  Visualizes lap times over the course of a stint. Upward trends indicate tyre wear (slower lap times). The dashed trend lines help identify the rate of degradation for each driver, crucial for predicting the optimal pit stop lap.
+                </p>
               </div>
             </div>
             
@@ -377,6 +398,7 @@ export default function Strategy() {
                     formatter={(value: number) => formatTime(value)}
                     labelFormatter={(label) => `Lap ${label}`}
                   />
+                  <Legend verticalAlign="top" height={36} iconType="circle" />
                   
                   {/* Actual Lap Times */}
                   <Line type="monotone" dataKey="time1" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }} name={`${d1Info?.name_acronym || driver1} Actual`} connectNulls />
@@ -394,20 +416,47 @@ export default function Strategy() {
           <div className="space-y-6 flex flex-col">
             {/* Pit Window */}
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6">
-              <h3 className="text-lg font-bold flex items-center mb-4">
-                <Clock className="mr-2 text-yellow-500" size={20} />
-                Pit Window Analysis
-              </h3>
+              <div className="mb-4">
+                <h3 className="text-lg font-bold flex items-center">
+                  <Clock className="mr-2 text-yellow-500" size={20} />
+                  Pit Window Analysis
+                </h3>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Shows the optimal window to pit based on tyre degradation and average pit loss time.
+                </p>
+              </div>
               
-              <div className="relative pt-6 pb-2">
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden relative">
+              <div className="relative pt-8 pb-2">
+                {/* Labels */}
+                <div 
+                  className="absolute top-0 text-xs font-bold text-yellow-500 transition-all duration-500 -translate-x-1/2"
+                  style={{ left: `${(pitWindow.open/Math.max(lapsData.length, 1))*100}%` }}
+                >
+                  OPEN
+                </div>
+                <div 
+                  className="absolute top-0 text-xs font-bold text-yellow-500 transition-all duration-500 -translate-x-1/2"
+                  style={{ left: `${(pitWindow.close/Math.max(lapsData.length, 1))*100}%` }}
+                >
+                  CLOSE
+                </div>
+                <div 
+                  className="absolute top-0 text-xs font-bold text-white transition-all duration-500 -translate-x-1/2"
+                  style={{ left: `${(pitWindow.current/Math.max(lapsData.length, 1))*100}%` }}
+                >
+                  LAP {pitWindow.current}
+                </div>
+
+                <div className="h-4 bg-zinc-800 rounded-full overflow-hidden relative border border-zinc-700">
+                  {/* Pit Window Range */}
                   <div 
-                    className="h-full bg-yellow-500/20 absolute top-0 transition-all duration-500"
+                    className="h-full bg-yellow-500/30 absolute top-0 transition-all duration-500 border-x border-yellow-500/50"
                     style={{ left: `${(pitWindow.open/Math.max(lapsData.length, 1))*100}%`, width: `${((pitWindow.close - pitWindow.open)/Math.max(lapsData.length, 1))*100}%` }}
                   ></div>
+                  {/* Current Lap Indicator */}
                   <div 
-                    className="h-full bg-yellow-500 absolute top-0 rounded-full transition-all duration-500"
-                    style={{ left: `${(pitWindow.current/Math.max(lapsData.length, 1))*100}%`, width: '4px' }}
+                    className="h-full bg-white absolute top-0 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+                    style={{ left: `${(pitWindow.current/Math.max(lapsData.length, 1))*100}%`, width: '4px', marginLeft: '-2px' }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-zinc-500 mt-2 font-mono">

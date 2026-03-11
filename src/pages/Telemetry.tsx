@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Loader2, Play, Activity } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Loader2, Play, Activity, Calendar, Flag, Users } from 'lucide-react';
 import axios from 'axios';
 
 export default function Telemetry() {
@@ -211,91 +211,111 @@ export default function Telemetry() {
           <p className="text-zinc-400 mt-1">Distance-based comparative analysis powered by OpenF1</p>
         </div>
         
-        <div className="flex flex-wrap gap-3 bg-zinc-900 p-3 rounded-xl border border-zinc-800 items-center">
-          {/* Year Selection */}
-          <select 
-            value={year} 
-            onChange={e => setYear(e.target.value)} 
-            disabled={loadingOptions || loading}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 disabled:opacity-50"
-          >
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-          </select>
+        <div className="bg-zinc-900/50 p-5 rounded-2xl border border-zinc-800/80 backdrop-blur-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+            
+            {/* Event Selection */}
+            <div className="lg:col-span-5 space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar size={14} /> Event Details
+              </label>
+              <div className="flex gap-2">
+                <select 
+                  value={year} 
+                  onChange={e => setYear(e.target.value)} 
+                  disabled={loadingOptions || loading}
+                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
+                >
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                </select>
+                <select 
+                  value={meetingKey} 
+                  onChange={e => setMeetingKey(e.target.value)} 
+                  disabled={loadingOptions || loading || meetings.length === 0}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium truncate"
+                >
+                  {meetings.length === 0 && <option value="">No meetings found</option>}
+                  {meetings.map((m: any) => (
+                    <option key={m.meeting_key} value={m.meeting_key}>
+                      {m.meeting_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-          {/* Meeting (Track) Selection */}
-          <select 
-            value={meetingKey} 
-            onChange={e => setMeetingKey(e.target.value)} 
-            disabled={loadingOptions || loading || meetings.length === 0}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 disabled:opacity-50 max-w-[200px] truncate"
-          >
-            {meetings.length === 0 && <option value="">No meetings found</option>}
-            {meetings.map((m: any) => (
-              <option key={m.meeting_key} value={m.meeting_key}>
-                {m.meeting_name}
-              </option>
-            ))}
-          </select>
+            {/* Session Selection */}
+            <div className="lg:col-span-3 space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Flag size={14} /> Session
+              </label>
+              <select 
+                value={sessionKey} 
+                onChange={e => setSessionKey(e.target.value)} 
+                disabled={loadingOptions || loading || sessions.length === 0}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
+              >
+                {sessions.length === 0 && <option value="">No sessions found</option>}
+                {sessions.map((s: any) => (
+                  <option key={s.session_key} value={s.session_key}>
+                    {s.session_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          {/* Session Selection */}
-          <select 
-            value={sessionKey} 
-            onChange={e => setSessionKey(e.target.value)} 
-            disabled={loadingOptions || loading || sessions.length === 0}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 disabled:opacity-50"
-          >
-            {sessions.length === 0 && <option value="">No sessions found</option>}
-            {sessions.map((s: any) => (
-              <option key={s.session_key} value={s.session_key}>
-                {s.session_name}
-              </option>
-            ))}
-          </select>
+            {/* Driver Comparison & Action */}
+            <div className="lg:col-span-4 space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Users size={14} /> Compare Drivers
+              </label>
+              <div className="flex gap-3 items-center">
+                <select 
+                  value={driver1} 
+                  onChange={e => setDriver1(e.target.value)} 
+                  disabled={loadingOptions || loading || drivers.length === 0}
+                  className="flex-1 bg-blue-950/20 border border-blue-900/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-blue-400 font-bold disabled:opacity-50 transition-all"
+                >
+                  {drivers.length === 0 && <option value="">No drivers</option>}
+                  {drivers.map((d: any) => (
+                    <option key={`d1-${d.driver_number}`} value={d.driver_number}>
+                      {d.name_acronym} ({d.driver_number})
+                    </option>
+                  ))}
+                </select>
+                
+                <span className="text-zinc-600 font-black italic text-sm">VS</span>
+                
+                <select 
+                  value={driver2} 
+                  onChange={e => setDriver2(e.target.value)} 
+                  disabled={loadingOptions || loading || drivers.length === 0}
+                  className="flex-1 bg-red-950/20 border border-red-900/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-500 font-bold disabled:opacity-50 transition-all"
+                >
+                  {drivers.length === 0 && <option value="">No drivers</option>}
+                  {drivers.map((d: any) => (
+                    <option key={`d2-${d.driver_number}`} value={d.driver_number}>
+                      {d.name_acronym} ({d.driver_number})
+                    </option>
+                  ))}
+                </select>
 
-          <div className="w-px h-6 bg-zinc-800 mx-1"></div>
+                <button 
+                  onClick={fetchTelemetry}
+                  disabled={loading || loadingOptions || !sessionKey || !driver1 || !driver2}
+                  className="bg-zinc-100 hover:bg-white text-zinc-900 disabled:bg-zinc-800 disabled:text-zinc-500 px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:shadow-none"
+                >
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} className="mr-1.5" />}
+                  {loading ? '' : 'Analyze'}
+                </button>
+              </div>
+            </div>
 
-          {/* Driver 1 Selection */}
-          <select 
-            value={driver1} 
-            onChange={e => setDriver1(e.target.value)} 
-            disabled={loadingOptions || loading || drivers.length === 0}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-blue-400 font-bold disabled:opacity-50"
-          >
-            {drivers.length === 0 && <option value="">No drivers</option>}
-            {drivers.map((d: any) => (
-              <option key={`d1-${d.driver_number}`} value={d.driver_number}>
-                {d.name_acronym} ({d.driver_number})
-              </option>
-            ))}
-          </select>
-
-          {/* Driver 2 Selection */}
-          <select 
-            value={driver2} 
-            onChange={e => setDriver2(e.target.value)} 
-            disabled={loadingOptions || loading || drivers.length === 0}
-            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-red-500 text-red-500 font-bold disabled:opacity-50"
-          >
-            {drivers.length === 0 && <option value="">No drivers</option>}
-            {drivers.map((d: any) => (
-              <option key={`d2-${d.driver_number}`} value={d.driver_number}>
-                {d.name_acronym} ({d.driver_number})
-              </option>
-            ))}
-          </select>
-          
-          <button 
-            onClick={fetchTelemetry}
-            disabled={loading || loadingOptions || !sessionKey || !driver1 || !driver2}
-            className="ml-auto bg-red-600 hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin mr-2" /> : <Play size={16} className="mr-2" />}
-            Analyze
-          </button>
+          </div>
         </div>
       </div>
 
@@ -303,10 +323,15 @@ export default function Telemetry() {
         <div className="flex-1 grid grid-rows-3 gap-4 overflow-hidden">
           {/* Speed Chart */}
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col">
-            <h3 className="text-sm font-bold text-zinc-400 mb-2 uppercase tracking-wider">Speed (km/h)</h3>
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Speed (km/h)</h3>
+                <p className="text-xs text-zinc-500 mt-1 max-w-2xl">Compares the velocity of both cars over the lap. Higher lines indicate faster speeds on straights or carrying more speed through corners.</p>
+              </div>
+            </div>
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
                   <YAxis domain={['auto', 'auto']} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}`} width={40} />
@@ -315,6 +340,7 @@ export default function Telemetry() {
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                     labelStyle={{ display: 'none' }}
                   />
+                  <Legend verticalAlign="top" height={36} iconType="circle" />
                   <Line type="monotone" dataKey="speed1" stroke="#3b82f6" strokeWidth={2} dot={false} name={`${d1Info?.name_acronym || driver1}`} />
                   <Line type="monotone" dataKey="speed2" stroke="#ef4444" strokeWidth={2} dot={false} name={`${d2Info?.name_acronym || driver2}`} />
                 </LineChart>
@@ -324,10 +350,15 @@ export default function Telemetry() {
 
           {/* Throttle & Brake */}
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col">
-            <h3 className="text-sm font-bold text-zinc-400 mb-2 uppercase tracking-wider">Throttle (%) & Brake</h3>
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">Throttle (%) & Brake</h3>
+                <p className="text-xs text-zinc-500 mt-1 max-w-2xl">Shows driver inputs. Solid lines represent throttle application (0-100%), while dashed lines indicate when the driver is braking.</p>
+              </div>
+            </div>
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
                   <YAxis domain={[0, 100]} stroke="#52525b" fontSize={12} width={40} />
@@ -336,6 +367,7 @@ export default function Telemetry() {
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                     labelStyle={{ display: 'none' }}
                   />
+                  <Legend verticalAlign="top" height={36} iconType="circle" />
                   <Line type="stepAfter" dataKey="throttle1" stroke="#3b82f6" strokeWidth={2} dot={false} name={`Throttle ${d1Info?.name_acronym || driver1}`} />
                   <Line type="stepAfter" dataKey="throttle2" stroke="#ef4444" strokeWidth={2} dot={false} name={`Throttle ${d2Info?.name_acronym || driver2}`} />
                   <Line type="stepAfter" dataKey="brake1" stroke="#60a5fa" strokeDasharray="4 4" strokeWidth={2} dot={false} name={`Brake ${d1Info?.name_acronym || driver1}`} />
@@ -347,10 +379,15 @@ export default function Telemetry() {
 
           {/* RPM & Gear */}
           <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 flex flex-col">
-            <h3 className="text-sm font-bold text-zinc-400 mb-2 uppercase tracking-wider">RPM & Gear</h3>
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-wider">RPM & Gear</h3>
+                <p className="text-xs text-zinc-500 mt-1 max-w-2xl">Engine revolutions per minute (left axis) and the current gear selected (right axis). Helps identify shift points and engine performance.</p>
+              </div>
+            </div>
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}s`} />
                   <YAxis yAxisId="left" domain={['auto', 'auto']} stroke="#52525b" fontSize={12} width={40} />
@@ -361,6 +398,7 @@ export default function Telemetry() {
                     labelStyle={{ color: '#a1a1aa', fontSize: '12px', marginBottom: '4px' }}
                     labelFormatter={(label) => `Time: ${label}s`}
                   />
+                  <Legend verticalAlign="top" height={36} iconType="circle" />
                   <Line yAxisId="left" type="monotone" dataKey="rpm1" stroke="#3b82f6" strokeWidth={1} dot={false} name={`RPM ${d1Info?.name_acronym || driver1}`} />
                   <Line yAxisId="left" type="monotone" dataKey="rpm2" stroke="#ef4444" strokeWidth={1} dot={false} name={`RPM ${d2Info?.name_acronym || driver2}`} />
                   <Line yAxisId="right" type="stepAfter" dataKey="gear1" stroke="#93c5fd" strokeWidth={2} dot={false} name={`Gear ${d1Info?.name_acronym || driver1}`} />

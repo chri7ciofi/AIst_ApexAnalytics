@@ -9,30 +9,71 @@ interface Regulation {
   summary: string;
 }
 
+interface Race {
+  round: number;
+  name: string;
+  circuit: string;
+}
+
 export default function Archive() {
   const [loading, setLoading] = useState(true);
   const [regulations, setRegulations] = useState<Regulation[]>([]);
+  const [races, setRaces] = useState<Race[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGp, setSelectedGp] = useState('Bahrain');
+  const [selectedGp, setSelectedGp] = useState('');
 
   useEffect(() => {
-    const fetchArchive = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get('/api/regulations');
-        setRegulations(res.data);
+        const [regRes, calRes] = await Promise.all([
+          axios.get('/api/regulations'),
+          axios.get('/api/calendar/2026')
+        ]);
+        setRegulations(regRes.data);
+        setRaces(calRes.data);
+        if (calRes.data.length > 0) {
+          setSelectedGp(calRes.data[0].name);
+        }
       } catch (error) {
-        console.error("Failed to fetch regulations", error);
+        console.error("Failed to fetch data", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchArchive();
+    fetchData();
   }, []);
 
   const filteredRegulations = regulations.filter(reg => 
     reg.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     reg.summary.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getMockContextualData = (gpName: string) => {
+    if (!gpName) return { scProb: '0%', poleWin: '0%', zones: ['Turn 1', 'Turn 2', 'Turn 3'] };
+    let hash = 0;
+    for (let i = 0; i < gpName.length; i++) {
+      hash = gpName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const scProb = Math.abs(hash % 80) + 10;
+    const poleWin = Math.abs((hash >> 2) % 60) + 20;
+    
+    const turn1 = Math.abs(hash % 15) + 1;
+    const turn2 = Math.abs((hash >> 1) % 15) + 1;
+    const turn3 = Math.abs((hash >> 2) % 15) + 1;
+    
+    return {
+      scProb: `${scProb}%`,
+      poleWin: `${poleWin}%`,
+      zones: [
+        `Turn ${turn1} (Start)`,
+        `Turn ${turn2} (Braking)`,
+        `Turn ${turn3} (Lockup)`
+      ]
+    };
+  };
+
+  const contextData = getMockContextualData(selectedGp);
 
   return (
     <div className="h-full flex flex-col space-y-6">
@@ -96,11 +137,11 @@ export default function Archive() {
             <select 
               value={selectedGp} 
               onChange={e => setSelectedGp(e.target.value)} 
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500"
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-green-500 max-w-[200px] truncate"
             >
-              <option value="Bahrain">Bahrain GP</option>
-              <option value="Monaco">Monaco GP</option>
-              <option value="Monza">Italian GP</option>
+              {races.map(race => (
+                <option key={race.round} value={race.name}>{race.name}</option>
+              ))}
             </select>
           </div>
 
@@ -122,7 +163,7 @@ export default function Archive() {
                 </li>
                 <li className="flex items-start">
                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mt-1.5 mr-3 shrink-0"></span>
-                  <span><strong>Track Limits:</strong> Turn 4 exit is strictly monitored. Lap times will be deleted if all four wheels cross the white line.</span>
+                  <span><strong>Track Limits:</strong> {contextData.zones[1]} exit is strictly monitored. Lap times will be deleted if all four wheels cross the white line.</span>
                 </li>
               </ul>
             </div>
@@ -136,18 +177,18 @@ export default function Archive() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-zinc-900 p-4 rounded-lg border border-zinc-800">
                   <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Safety Car Prob.</p>
-                  <p className="text-2xl font-mono font-bold text-zinc-100">65%</p>
+                  <p className="text-2xl font-mono font-bold text-zinc-100">{contextData.scProb}</p>
                 </div>
                 <div className="bg-zinc-900 p-4 rounded-lg border border-zinc-800">
                   <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Pole Win Rate</p>
-                  <p className="text-2xl font-mono font-bold text-zinc-100">42%</p>
+                  <p className="text-2xl font-mono font-bold text-zinc-100">{contextData.poleWin}</p>
                 </div>
                 <div className="col-span-2 bg-zinc-900 p-4 rounded-lg border border-zinc-800">
                   <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Key Incident Zones</p>
                   <div className="flex items-center space-x-2">
-                    <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-bold">Turn 1 (Start)</span>
-                    <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs font-bold">Turn 4 (Braking)</span>
-                    <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs font-bold">Turn 10 (Lockup)</span>
+                    <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-bold">{contextData.zones[0]}</span>
+                    <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs font-bold">{contextData.zones[1]}</span>
+                    <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs font-bold">{contextData.zones[2]}</span>
                   </div>
                 </div>
               </div>
