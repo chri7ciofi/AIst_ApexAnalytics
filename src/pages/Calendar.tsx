@@ -2,24 +2,7 @@ import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, MapPin, Flag, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { format, formatDistanceToNow, isFuture } from 'date-fns';
 import axios from 'axios';
-
-interface RaceSession {
-  name: string;
-  date: string;
-}
-
-interface Race {
-  round: number;
-  name: string;
-  circuit: string;
-  date: string;
-  timezone: string;
-  length: number;
-  drsZones: number;
-  record: string;
-  history?: string;
-  sessions?: RaceSession[];
-}
+import type { Race } from '../types';
 
 export default function Calendar() {
   const [loading, setLoading] = useState(true);
@@ -31,12 +14,12 @@ export default function Calendar() {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      const local = trackTimezone 
+      const local = trackTimezone
         ? date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: trackTimezone, hour12: false })
         : date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
       const cet = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
       return `${local} Local / ${cet} CET`;
-    } catch (e) {
+    } catch {
       return '';
     }
   };
@@ -60,7 +43,7 @@ export default function Calendar() {
     if (!races.length) return;
 
     const nextRace = races.find(r => isFuture(new Date(r.date))) || races[0];
-    
+
     const updateCountdown = () => {
       const distance = formatDistanceToNow(new Date(nextRace.date), { addSuffix: true });
       setCountdown(distance);
@@ -85,23 +68,23 @@ export default function Calendar() {
           <Loader2 className="animate-spin text-zinc-500" size={48} />
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
           {/* Race List */}
-          <div className="col-span-1 bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden flex flex-col">
+          <div className="lg:col-span-1 bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden flex flex-col">
             <div className="p-4 border-b border-zinc-800 bg-zinc-950/50">
               <h3 className="font-bold flex items-center text-zinc-300">
                 <CalendarIcon className="mr-2" size={18} />
-                24 Rounds
+                {races.length} Rounds
               </h3>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
               {races.map((race) => (
                 <button
                   key={race.round}
                   onClick={() => setSelectedRace(race)}
                   className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex items-center justify-between group ${
-                    selectedRace?.round === race.round 
-                      ? 'bg-red-500/10 border border-red-500/20 text-red-500' 
+                    selectedRace?.round === race.round
+                      ? 'bg-red-500/10 border border-red-500/20 text-red-500'
                       : 'hover:bg-zinc-800 text-zinc-400 border border-transparent'
                   }`}
                 >
@@ -121,55 +104,55 @@ export default function Calendar() {
 
           {/* Track Details */}
           {selectedRace && (
-            <div className="col-span-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-8 flex flex-col">
-              <div className="flex justify-between items-start mb-8">
+            <div className="lg:col-span-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 lg:p-8 flex flex-col overflow-y-auto custom-scrollbar">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-8 gap-4">
                 <div>
                   <p className="text-red-500 font-bold tracking-wider uppercase text-sm mb-2">Round {selectedRace.round}</p>
-                  <h2 className="text-4xl font-bold tracking-tight mb-2">{selectedRace.name}</h2>
-                  <p className="text-xl text-zinc-400 flex items-center">
+                  <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-2">{selectedRace.name}</h2>
+                  <p className="text-lg lg:text-xl text-zinc-400 flex items-center">
                     <MapPin className="mr-2" size={20} />
                     {selectedRace.circuit}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="sm:text-right">
                   <p className="text-sm text-zinc-500 uppercase tracking-wider mb-1">Race Date</p>
-                  <p className="text-2xl font-mono font-bold">{format(new Date(selectedRace.date), 'dd MMM yyyy')}</p>
-                  <p className="text-zinc-400 font-mono">{formatSessionTime(selectedRace.date, selectedRace.timezone)}</p>
+                  <p className="text-xl lg:text-2xl font-mono font-bold">{format(new Date(selectedRace.date), 'dd MMM yyyy')}</p>
+                  <p className="text-zinc-400 font-mono text-sm">{formatSessionTime(selectedRace.date, selectedRace.timezone)}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-6 mb-8">
-                <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
-                  <p className="text-sm text-zinc-500 uppercase tracking-wider mb-2">Circuit Length</p>
-                  <p className="text-3xl font-mono font-bold text-zinc-100">{selectedRace.length} <span className="text-lg text-zinc-500">km</span></p>
+              <div className="grid grid-cols-3 gap-4 lg:gap-6 mb-8">
+                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800">
+                  <p className="text-xs lg:text-sm text-zinc-500 uppercase tracking-wider mb-2">Circuit Length</p>
+                  <p className="text-2xl lg:text-3xl font-mono font-bold text-zinc-100">{selectedRace.length} <span className="text-base lg:text-lg text-zinc-500">km</span></p>
                 </div>
-                <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
-                  <p className="text-sm text-zinc-500 uppercase tracking-wider mb-2">DRS Zones</p>
-                  <p className="text-3xl font-mono font-bold text-zinc-100">{selectedRace.drsZones}</p>
+                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800">
+                  <p className="text-xs lg:text-sm text-zinc-500 uppercase tracking-wider mb-2">DRS Zones</p>
+                  <p className="text-2xl lg:text-3xl font-mono font-bold text-zinc-100">{selectedRace.drsZones}</p>
                 </div>
-                <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800">
-                  <p className="text-sm text-zinc-500 uppercase tracking-wider mb-2">Lap Record</p>
-                  <p className="text-lg font-mono font-bold text-zinc-100 leading-tight">{selectedRace.record}</p>
+                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800">
+                  <p className="text-xs lg:text-sm text-zinc-500 uppercase tracking-wider mb-2">Lap Record</p>
+                  <p className="text-sm lg:text-lg font-mono font-bold text-zinc-100 leading-tight">{selectedRace.record}</p>
                 </div>
               </div>
 
               {selectedRace.sessions && selectedRace.sessions.length > 0 && (
-                <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 mb-8">
+                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800 mb-8">
                   <h3 className="text-lg font-bold text-zinc-200 mb-4 flex items-center">
                     <Clock className="mr-2 text-red-500" size={20} />
                     Weekend Schedule
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
                     {selectedRace.sessions.map((session, idx) => {
                       const sessionDate = new Date(session.date);
-                      const localTime = selectedRace.timezone 
+                      const localTime = selectedRace.timezone
                         ? sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: selectedRace.timezone, hour12: false })
                         : sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
                       const cetTime = sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
                       const dayName = selectedRace.timezone
                         ? sessionDate.toLocaleDateString('en-GB', { weekday: 'long', timeZone: selectedRace.timezone })
                         : sessionDate.toLocaleDateString('en-GB', { weekday: 'long' });
-                      
+
                       return (
                         <div key={idx} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex justify-between items-center">
                           <div>
@@ -188,7 +171,7 @@ export default function Calendar() {
               )}
 
               {selectedRace.history && (
-                <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 flex-1">
+                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800 flex-1">
                   <h3 className="text-lg font-bold text-zinc-200 mb-3 flex items-center">
                     <Flag className="mr-2 text-red-500" size={20} />
                     Historical Context

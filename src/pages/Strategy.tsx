@@ -1,214 +1,98 @@
-import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Scatter, Legend } from 'recharts';
-import { AlertTriangle, Clock, TrendingDown, ArrowRightLeft, Loader2, Play, Activity, Calendar, Flag, Users } from 'lucide-react';
+import { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { AlertTriangle, Clock, TrendingDown, ArrowRightLeft, Loader2, Activity, BrainCircuit, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import { useRaceSelector } from '../hooks/useRaceSelector';
+import RaceSelector from '../components/RaceSelector';
+import type { StrategyLapPoint, LapData, Stint } from '../types';
 
 export default function Strategy() {
   const [loading, setLoading] = useState(false);
-  const [lapsData, setLapsData] = useState<any[]>([]);
+  const [lapsData, setLapsData] = useState<StrategyLapPoint[]>([]);
   const [pitWindow, setPitWindow] = useState({ open: 15, close: 22, current: 18 });
-  const [alerts, setAlerts] = useState<{type: string, msg: string}[]>([]);
-  
-  // Selections
-  const [year, setYear] = useState('2024');
-  const [meetingKey, setMeetingKey] = useState('');
-  const [sessionKey, setSessionKey] = useState('');
-  const [driver1, setDriver1] = useState('');
-  const [driver2, setDriver2] = useState('');
+  const [alerts, setAlerts] = useState<{ type: string; msg: string }[]>([]);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
 
-  // Options
-  const [meetings, setMeetings] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [drivers, setDrivers] = useState<any[]>([]);
-  
-  const [loadingOptions, setLoadingOptions] = useState(false);
+  const selector = useRaceSelector();
 
-  const formatSessionTime = (dateString: string, gmtOffset?: string) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      
-      let localStr = '';
-      if (gmtOffset) {
-        const sign = gmtOffset.startsWith('-') ? -1 : 1;
-        const [hours, minutes] = gmtOffset.substring(1).split(':').map(Number);
-        const offsetMs = sign * (hours * 60 + minutes) * 60 * 1000;
-        const localDate = new Date(date.getTime() + offsetMs);
-        localStr = localDate.toISOString().substring(11, 16);
-      } else {
-        localStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-      }
-
-      const cet = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
-      return `(${localStr} Local / ${cet} CET)`;
-    } catch (e) {
-      return '';
-    }
-  };
-
-  // 1. Fetch Meetings
-  useEffect(() => {
-    const fetchMeetings = async () => {
-      setLoadingOptions(true);
-      try {
-        const res = await axios.get(`/api/openf1/meetings?year=${year}`);
-        const sortedMeetings = res.data.sort((a: any, b: any) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
-        setMeetings(sortedMeetings);
-        if (sortedMeetings.length > 0) {
-          setMeetingKey(sortedMeetings[0].meeting_key.toString());
-        } else {
-          setMeetingKey('');
-        }
-      } catch (error) {
-        console.error("Failed to fetch meetings", error);
-      } finally {
-        setLoadingOptions(false);
-      }
-    };
-    fetchMeetings();
-  }, [year]);
-
-  // 2. Fetch Sessions
-  useEffect(() => {
-    if (!meetingKey) {
-      setSessions([]);
-      setSessionKey('');
-      return;
-    }
-    const fetchSessions = async () => {
-      setLoadingOptions(true);
-      try {
-        const res = await axios.get(`/api/openf1/sessions?meeting_key=${meetingKey}`);
-        const sortedSessions = res.data.sort((a: any, b: any) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
-        setSessions(sortedSessions);
-        if (sortedSessions.length > 0) {
-          setSessionKey(sortedSessions[sortedSessions.length - 1].session_key.toString());
-        } else {
-          setSessionKey('');
-        }
-      } catch (error) {
-        console.error("Failed to fetch sessions", error);
-      } finally {
-        setLoadingOptions(false);
-      }
-    };
-    fetchSessions();
-  }, [meetingKey]);
-
-  // 3. Fetch Drivers
-  useEffect(() => {
-    if (!sessionKey) {
-      setDrivers([]);
-      setDriver1('');
-      setDriver2('');
-      return;
-    }
-    const fetchDrivers = async () => {
-      setLoadingOptions(true);
-      try {
-        const res = await axios.get(`/api/openf1/drivers?session_key=${sessionKey}`);
-        const validDrivers = res.data.filter((d: any) => d.driver_number && d.name_acronym);
-        const sortedDrivers = validDrivers.sort((a: any, b: any) => a.driver_number - b.driver_number);
-        const uniqueDrivers = Array.from(new Map(sortedDrivers.map((item: any) => [item.driver_number, item])).values()) as any[];
-        
-        setDrivers(uniqueDrivers);
-        if (uniqueDrivers.length >= 2) {
-          setDriver1(uniqueDrivers[0].driver_number.toString());
-          const secondDriver = uniqueDrivers.find((d: any) => d.driver_number === 16 || d.driver_number === 4) || uniqueDrivers[1];
-          setDriver2(secondDriver.driver_number.toString());
-        } else if (uniqueDrivers.length === 1) {
-          setDriver1(uniqueDrivers[0].driver_number.toString());
-          setDriver2('');
-        } else {
-          setDriver1('');
-          setDriver2('');
-        }
-      } catch (error) {
-        console.error("Failed to fetch drivers", error);
-      } finally {
-        setLoadingOptions(false);
-      }
-    };
-    fetchDrivers();
-  }, [sessionKey]);
-
-  const calculateRegression = (laps: any[]) => {
+  const calculateRegression = (laps: { x: number; y: number }[]) => {
     if (laps.length < 2) return { slope: 0, intercept: 0 };
-    
+
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     const n = laps.length;
-    
+
     laps.forEach(lap => {
       sumX += lap.x;
       sumY += lap.y;
       sumXY += lap.x * lap.y;
       sumXX += lap.x * lap.x;
     });
-    
+
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
-    
+
     return { slope, intercept };
   };
 
   const generateStrategyData = async () => {
-    if (!sessionKey || !driver1 || !driver2) return;
-    
+    if (!selector.sessionKey || !selector.driver1 || !selector.driver2) return;
+
     setLoading(true);
     try {
       // Fetch laps and stints
       const [laps1Res, laps2Res, stints1Res, stints2Res] = await Promise.all([
-        axios.get(`/api/openf1/laps?session_key=${sessionKey}&driver_number=${driver1}`),
-        axios.get(`/api/openf1/laps?session_key=${sessionKey}&driver_number=${driver2}`),
-        axios.get(`/api/openf1/stints?session_key=${sessionKey}&driver_number=${driver1}`),
-        axios.get(`/api/openf1/stints?session_key=${sessionKey}&driver_number=${driver2}`)
+        axios.get(`/api/openf1/laps?session_key=${selector.sessionKey}&driver_number=${selector.driver1}`),
+        axios.get(`/api/openf1/laps?session_key=${selector.sessionKey}&driver_number=${selector.driver2}`),
+        axios.get(`/api/openf1/stints?session_key=${selector.sessionKey}&driver_number=${selector.driver1}`),
+        axios.get(`/api/openf1/stints?session_key=${selector.sessionKey}&driver_number=${selector.driver2}`)
       ]);
-      
-      const laps1 = laps1Res.data.filter((l: any) => l.lap_duration != null);
-      const laps2 = laps2Res.data.filter((l: any) => l.lap_duration != null);
-      const stints1 = stints1Res.data;
-      const stints2 = stints2Res.data;
-      
-      // Remove outliers (e.g. pit laps, VSC, SC) - simple filter: > 105% of median
+
+      const laps1 = (laps1Res.data as LapData[]).filter((l) => l.lap_duration != null);
+      const laps2 = (laps2Res.data as LapData[]).filter((l) => l.lap_duration != null);
+      const stints1 = stints1Res.data as Stint[];
+      const stints2 = stints2Res.data as Stint[];
+
+      // Remove outliers (e.g. pit laps, VSC, SC) - > 105% of median
       const getMedian = (arr: number[]) => {
         if (arr.length === 0) return 0;
         const sorted = [...arr].sort((a, b) => a - b);
         const mid = Math.floor(sorted.length / 2);
         return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
       };
-      
-      const median1 = getMedian(laps1.map((l: any) => l.lap_duration));
-      const median2 = getMedian(laps2.map((l: any) => l.lap_duration));
-      
-      const cleanLaps1 = laps1.filter((l: any) => l.lap_duration < median1 * 1.05);
-      const cleanLaps2 = laps2.filter((l: any) => l.lap_duration < median2 * 1.05);
-      
+
+      const median1 = getMedian(laps1.map((l) => l.lap_duration!));
+      const median2 = getMedian(laps2.map((l) => l.lap_duration!));
+
+      const cleanLaps1 = laps1.filter((l) => l.lap_duration! < median1 * 1.05);
+      const cleanLaps2 = laps2.filter((l) => l.lap_duration! < median2 * 1.05);
+
       // Calculate regression for the longest stint of each driver
-      const getLongestStintLaps = (cleanLaps: any[], stints: any[]) => {
+      const getLongestStintLaps = (cleanLaps: LapData[], stints: Stint[]) => {
         if (stints.length === 0) return cleanLaps;
-        const longestStint = stints.reduce((prev: any, current: any) => 
+        const longestStint = stints.reduce((prev, current) =>
           (current.lap_end - current.lap_start) > (prev.lap_end - prev.lap_start) ? current : prev
         );
         return cleanLaps.filter(l => l.lap_number >= longestStint.lap_start && l.lap_number <= longestStint.lap_end);
       };
-      
+
       const stintLaps1 = getLongestStintLaps(cleanLaps1, stints1);
       const stintLaps2 = getLongestStintLaps(cleanLaps2, stints2);
-      
-      const reg1 = calculateRegression(stintLaps1.map(l => ({ x: l.lap_number, y: l.lap_duration })));
-      const reg2 = calculateRegression(stintLaps2.map(l => ({ x: l.lap_number, y: l.lap_duration })));
-      
+
+      const reg1 = calculateRegression(stintLaps1.map(l => ({ x: l.lap_number, y: l.lap_duration! })));
+      const reg2 = calculateRegression(stintLaps2.map(l => ({ x: l.lap_number, y: l.lap_duration! })));
+
       const maxLap = Math.max(
-        ...laps1.map((l: any) => l.lap_number), 
-        ...laps2.map((l: any) => l.lap_number),
+        ...laps1.map((l) => l.lap_number),
+        ...laps2.map((l) => l.lap_number),
         1
       );
-      
-      const chartData = [];
+
+      const chartData: StrategyLapPoint[] = [];
       for (let lap = 1; lap <= maxLap; lap++) {
-        const l1 = cleanLaps1.find((l: any) => l.lap_number === lap);
-        const l2 = cleanLaps2.find((l: any) => l.lap_number === lap);
-        
+        const l1 = cleanLaps1.find((l) => l.lap_number === lap);
+        const l2 = cleanLaps2.find((l) => l.lap_number === lap);
+
         chartData.push({
           lap,
           time1: l1 ? l1.lap_duration : null,
@@ -217,46 +101,76 @@ export default function Strategy() {
           trend2: reg2.slope !== 0 ? reg2.intercept + reg2.slope * lap : null,
         });
       }
-      
+
       setLapsData(chartData);
-      
+
       // Generate dynamic alerts based on real data
-      const newAlerts = [];
-      const d1Info = drivers.find(d => d.driver_number.toString() === driver1);
-      const d2Info = drivers.find(d => d.driver_number.toString() === driver2);
-      const n1 = d1Info?.name_acronym || driver1;
-      const n2 = d2Info?.name_acronym || driver2;
-      
+      const newAlerts: { type: string; msg: string }[] = [];
+      const n1 = selector.d1Info?.name_acronym || selector.driver1;
+      const n2 = selector.d2Info?.name_acronym || selector.driver2;
+
       if (reg1.slope > 0) {
         newAlerts.push({ type: 'warning', msg: `${n1} degradation: +${reg1.slope.toFixed(3)}s per lap.` });
       }
       if (reg2.slope > 0) {
         newAlerts.push({ type: 'warning', msg: `${n2} degradation: +${reg2.slope.toFixed(3)}s per lap.` });
       }
-      
+
       if (reg1.slope > reg2.slope && reg2.slope > 0) {
         newAlerts.push({ type: 'info', msg: `${n1} is degrading faster than ${n2}.` });
       } else if (reg2.slope > reg1.slope && reg1.slope > 0) {
         newAlerts.push({ type: 'info', msg: `${n2} is degrading faster than ${n1}.` });
       }
-      
+
       // Find pit laps
-      const pitLaps1 = stints1.map((s: any) => s.lap_end).filter((l: number) => l > 0 && l < maxLap);
-      const pitLaps2 = stints2.map((s: any) => s.lap_end).filter((l: number) => l > 0 && l < maxLap);
-      
+      const pitLaps1 = stints1.map((s) => s.lap_end).filter((l) => l > 0 && l < maxLap);
+      const pitLaps2 = stints2.map((s) => s.lap_end).filter((l) => l > 0 && l < maxLap);
+
       if (pitLaps1.length > 0) {
         newAlerts.push({ type: 'success', msg: `${n1} pitted on lap(s): ${pitLaps1.join(', ')}.` });
       }
       if (pitLaps2.length > 0) {
         newAlerts.push({ type: 'success', msg: `${n2} pitted on lap(s): ${pitLaps2.join(', ')}.` });
       }
-      
+
       setAlerts(newAlerts);
+
+      // Update pit window visualization based on pit stops
+      const allPitLaps = [...pitLaps1, ...pitLaps2];
+      let openP = 15, closeP = 22, currentP = 18;
+      if (allPitLaps.length > 0) {
+        const avgPit = Math.round(allPitLaps.reduce((a, b) => a + b, 0) / allPitLaps.length);
+        openP = Math.max(1, avgPit - 5);
+        closeP = Math.min(maxLap, avgPit + 5);
+        currentP = avgPit;
+      } else {
+        const mid = Math.round(maxLap / 2);
+        openP = Math.max(1, mid - 5);
+        closeP = mid + 5;
+        currentP = mid;
+      }
+      setPitWindow({ open: openP, close: closeP, current: currentP });
+
+      // Trigger AI Strategy Prediction
+      setLoadingAi(true);
+      const meetingName = selector.meetings.find(m => m.meeting_key.toString() === selector.meetingKey)?.meeting_name;
+      const sessionName = selector.sessions.find(s => s.session_key.toString() === selector.sessionKey)?.session_name;
       
-      // Update pit window visualization based on the last pit stop
-      const lastPit = Math.max(...pitLaps1, ...pitLaps2, 15);
-      setPitWindow({ open: Math.max(1, lastPit - 5), close: lastPit + 5, current: lastPit });
-      
+      const promptData = `
+Circuit: ${meetingName || 'F1 Circuit'} ${selector.year}
+Session: ${sessionName || 'Race'}
+Driver 1 (${n1}): Degradation trend +${reg1.slope.toFixed(3)}s per lap. Longest stint: ${stintLaps1.length} laps.
+Driver 2 (${n2}): Degradation trend +${reg2.slope.toFixed(3)}s per lap. Longest stint: ${stintLaps2.length} laps.
+Observed Pit Window: Around lap ${currentP}.
+      `;
+      axios.post('/api/ai/strategy', { promptData })
+        .then(res => setAiSuggestion(res.data.suggestion))
+        .catch(err => {
+          console.error("AI Error", err);
+          setAiSuggestion("AI Strategy unavailable. Please ensure GEMINI_API_KEY is set in .env.");
+        })
+        .finally(() => setLoadingAi(false));
+
     } catch (error) {
       console.error("Failed to fetch strategy data", error);
       setLapsData([]);
@@ -273,8 +187,8 @@ export default function Strategy() {
     return `${mins > 0 ? mins + ':' : ''}${secs.padStart(mins > 0 ? 6 : 5, '0')}`;
   };
 
-  const d1Info = drivers.find(d => d.driver_number.toString() === driver1);
-  const d2Info = drivers.find(d => d.driver_number.toString() === driver2);
+  const d1Name = selector.d1Info?.name_acronym || selector.driver1;
+  const d2Name = selector.d2Info?.name_acronym || selector.driver2;
 
   return (
     <div className="h-full flex flex-col space-y-6">
@@ -283,116 +197,12 @@ export default function Strategy() {
           <h2 className="text-3xl font-bold tracking-tight">AI Strategy Predictor</h2>
           <p className="text-zinc-400 mt-1">Real-time degradation and pit-stop analysis powered by OpenF1</p>
         </div>
-        
-        <div className="bg-zinc-900/50 p-5 rounded-2xl border border-zinc-800/80 backdrop-blur-sm">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-            
-            {/* Event Selection */}
-            <div className="lg:col-span-5 space-y-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Calendar size={14} /> Event Details
-              </label>
-              <div className="flex gap-2">
-                <select 
-                  value={year} 
-                  onChange={e => setYear(e.target.value)} 
-                  disabled={loadingOptions || loading}
-                  className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
-                >
-                  <option value="2026">2026</option>
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
-                  <option value="2022">2022</option>
-                </select>
-                <select 
-                  value={meetingKey} 
-                  onChange={e => setMeetingKey(e.target.value)} 
-                  disabled={loadingOptions || loading || meetings.length === 0}
-                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium truncate"
-                >
-                  {meetings.length === 0 && <option value="">No meetings found</option>}
-                  {meetings.map((m: any) => (
-                    <option key={m.meeting_key} value={m.meeting_key}>
-                      {m.meeting_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
 
-            {/* Session Selection */}
-            <div className="lg:col-span-3 space-y-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Flag size={14} /> Session
-              </label>
-              <select 
-                value={sessionKey} 
-                onChange={e => setSessionKey(e.target.value)} 
-                disabled={loadingOptions || loading || sessions.length === 0}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
-              >
-                {sessions.length === 0 && <option value="">No sessions found</option>}
-                {sessions.map((s: any) => {
-                  const selectedMeeting = meetings.find(m => m.meeting_key.toString() === meetingKey);
-                  return (
-                    <option key={s.session_key} value={s.session_key}>
-                      {s.session_name} {formatSessionTime(s.date_start, selectedMeeting?.gmt_offset)}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            {/* Driver Comparison & Action */}
-            <div className="lg:col-span-4 space-y-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Users size={14} /> Compare Drivers
-              </label>
-              <div className="flex gap-3 items-center">
-                <select 
-                  value={driver1} 
-                  onChange={e => setDriver1(e.target.value)} 
-                  disabled={loadingOptions || loading || drivers.length === 0}
-                  className="flex-1 bg-blue-950/20 border border-blue-900/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-blue-400 font-bold disabled:opacity-50 transition-all"
-                >
-                  {drivers.length === 0 && <option value="">No drivers</option>}
-                  {drivers.map((d: any) => (
-                    <option key={`d1-${d.driver_number}`} value={d.driver_number}>
-                      {d.name_acronym} ({d.driver_number})
-                    </option>
-                  ))}
-                </select>
-                
-                <span className="text-zinc-600 font-black italic text-sm">VS</span>
-                
-                <select 
-                  value={driver2} 
-                  onChange={e => setDriver2(e.target.value)} 
-                  disabled={loadingOptions || loading || drivers.length === 0}
-                  className="flex-1 bg-red-950/20 border border-red-900/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-500 font-bold disabled:opacity-50 transition-all"
-                >
-                  {drivers.length === 0 && <option value="">No drivers</option>}
-                  {drivers.map((d: any) => (
-                    <option key={`d2-${d.driver_number}`} value={d.driver_number}>
-                      {d.name_acronym} ({d.driver_number})
-                    </option>
-                  ))}
-                </select>
-
-                <button 
-                  onClick={generateStrategyData}
-                  disabled={loading || loadingOptions || !sessionKey || !driver1 || !driver2}
-                  className="bg-zinc-100 hover:bg-white text-zinc-900 disabled:bg-zinc-800 disabled:text-zinc-500 px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:shadow-none"
-                >
-                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} className="mr-1.5" />}
-                  {loading ? '' : 'Analyze'}
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
+        <RaceSelector
+          {...selector}
+          loading={loading}
+          onAnalyze={generateStrategyData}
+        />
       </div>
 
       {lapsData.length > 0 ? (
@@ -410,14 +220,14 @@ export default function Strategy() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex-1 min-h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={lapsData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="lap" stroke="#52525b" fontSize={12} label={{ value: 'Lap Number', position: 'insideBottom', offset: -10, fill: '#a1a1aa', fontSize: 12 }} />
                   <YAxis domain={['auto', 'auto']} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} tickFormatter={(val) => formatTime(val)} width={60} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                     labelStyle={{ color: '#a1a1aa', fontSize: '12px', marginBottom: '4px' }}
@@ -425,14 +235,14 @@ export default function Strategy() {
                     labelFormatter={(label) => `Lap ${label}`}
                   />
                   <Legend verticalAlign="top" height={36} iconType="circle" />
-                  
+
                   {/* Actual Lap Times */}
-                  <Line type="monotone" dataKey="time1" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} name={`${d1Info?.name_acronym || driver1} Actual`} connectNulls />
-                  <Line type="monotone" dataKey="time2" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4, fill: '#ef4444', strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} name={`${d2Info?.name_acronym || driver2} Actual`} connectNulls />
-                  
+                  <Line type="monotone" dataKey="time1" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} name={`${d1Name} Actual`} connectNulls />
+                  <Line type="monotone" dataKey="time2" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4, fill: '#ef4444', strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} name={`${d2Name} Actual`} connectNulls />
+
                   {/* Trend Lines */}
-                  <Line type="monotone" dataKey="trend1" stroke="#93c5fd" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={false} name={`${d1Info?.name_acronym || driver1} Trend`} connectNulls />
-                  <Line type="monotone" dataKey="trend2" stroke="#fca5a5" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={false} name={`${d2Info?.name_acronym || driver2} Trend`} connectNulls />
+                  <Line type="monotone" dataKey="trend1" stroke="#93c5fd" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={false} name={`${d1Name} Trend`} connectNulls />
+                  <Line type="monotone" dataKey="trend2" stroke="#fca5a5" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={false} name={`${d2Name} Trend`} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -451,38 +261,36 @@ export default function Strategy() {
                   Shows the optimal window to pit based on tyre degradation and average pit loss time.
                 </p>
               </div>
-              
+
               <div className="relative pt-8 pb-2">
                 {/* Labels */}
-                <div 
+                <div
                   className="absolute top-0 text-xs font-bold text-yellow-500 transition-all duration-500 -translate-x-1/2"
-                  style={{ left: `${(pitWindow.open/Math.max(lapsData.length, 1))*100}%` }}
+                  style={{ left: `${(pitWindow.open / Math.max(lapsData.length, 1)) * 100}%` }}
                 >
                   OPEN
                 </div>
-                <div 
+                <div
                   className="absolute top-0 text-xs font-bold text-yellow-500 transition-all duration-500 -translate-x-1/2"
-                  style={{ left: `${(pitWindow.close/Math.max(lapsData.length, 1))*100}%` }}
+                  style={{ left: `${(pitWindow.close / Math.max(lapsData.length, 1)) * 100}%` }}
                 >
                   CLOSE
                 </div>
-                <div 
+                <div
                   className="absolute top-0 text-xs font-bold text-white transition-all duration-500 -translate-x-1/2"
-                  style={{ left: `${(pitWindow.current/Math.max(lapsData.length, 1))*100}%` }}
+                  style={{ left: `${(pitWindow.current / Math.max(lapsData.length, 1)) * 100}%` }}
                 >
                   LAP {pitWindow.current}
                 </div>
 
                 <div className="h-4 bg-zinc-800 rounded-full overflow-hidden relative border border-zinc-700">
-                  {/* Pit Window Range */}
-                  <div 
+                  <div
                     className="h-full bg-yellow-500/30 absolute top-0 transition-all duration-500 border-x border-yellow-500/50"
-                    style={{ left: `${(pitWindow.open/Math.max(lapsData.length, 1))*100}%`, width: `${((pitWindow.close - pitWindow.open)/Math.max(lapsData.length, 1))*100}%` }}
+                    style={{ left: `${(pitWindow.open / Math.max(lapsData.length, 1)) * 100}%`, width: `${((pitWindow.close - pitWindow.open) / Math.max(lapsData.length, 1)) * 100}%` }}
                   ></div>
-                  {/* Current Lap Indicator */}
-                  <div 
+                  <div
                     className="h-full bg-white absolute top-0 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(255,255,255,0.8)]"
-                    style={{ left: `${(pitWindow.current/Math.max(lapsData.length, 1))*100}%`, width: '4px', marginLeft: '-2px' }}
+                    style={{ left: `${(pitWindow.current / Math.max(lapsData.length, 1)) * 100}%`, width: '4px', marginLeft: '-2px' }}
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-zinc-500 mt-2 font-mono">
@@ -490,11 +298,11 @@ export default function Strategy() {
                   <span>Lap {Math.floor(lapsData.length / 2)}</span>
                   <span>Lap {lapsData.length}</span>
                 </div>
-                
+
                 <div className="mt-6 grid grid-cols-2 gap-4">
                   <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Avg Pit Loss</p>
-                    <p className="text-xl font-mono font-bold text-zinc-100">~22.0s</p>
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Pit Window</p>
+                    <p className="text-xl font-mono font-bold text-zinc-100">L{pitWindow.open}–L{pitWindow.close}</p>
                   </div>
                   <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800">
                     <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Data Points</p>
@@ -504,13 +312,40 @@ export default function Strategy() {
               </div>
             </div>
 
+            {/* AI Strategy Suggestion */}
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 flex flex-col relative overflow-hidden">
+              {/* Background gradient for AI */}
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 pointer-events-none"></div>
+              
+              <h3 className="text-lg font-bold flex items-center mb-4 shrink-0 relative z-10">
+                <BrainCircuit className="mr-2 text-indigo-400" size={20} />
+                AI Strategy Suggestion
+                <Sparkles className="ml-2 text-indigo-500/50" size={16} />
+              </h3>
+
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar text-sm text-zinc-300 leading-relaxed relative z-10">
+                {loadingAi ? (
+                  <div className="flex flex-col items-center justify-center h-full py-4 opacity-70">
+                    <Loader2 className="animate-spin text-indigo-400 mb-2" size={24} />
+                    <span className="text-xs text-indigo-300 animate-pulse">Running GenAI Strategy Models...</span>
+                  </div>
+                ) : aiSuggestion ? (
+                  <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl whitespace-pre-line text-indigo-100">
+                    {aiSuggestion}
+                  </div>
+                ) : (
+                  <div className="text-zinc-500 py-4 text-center">Analyze data to generate AI insights.</div>
+                )}
+              </div>
+            </div>
+
             {/* Live Alerts */}
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 flex-1 flex flex-col min-h-0">
               <h3 className="text-lg font-bold flex items-center mb-4 shrink-0">
                 <AlertTriangle className="mr-2 text-orange-500" size={20} />
                 Strategic Insights
               </h3>
-              
+
               <div className="space-y-3 flex-1 overflow-y-auto pr-2">
                 {alerts.map((alert, i) => (
                   <div key={i} className={`p-3 rounded-xl border text-sm flex items-start ${

@@ -1,6 +1,10 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import axios from "axios";
+import dotenv from "dotenv";
+import { GoogleGenAI } from "@google/genai";
+
+dotenv.config();
 
 // Simple in-memory cache
 const cache = new Map<string, { data: any, timestamp: number }>();
@@ -157,6 +161,34 @@ async function startServer() {
       { id: 3, title: "Track Limits Policy", category: "Sporting", summary: "Strict enforcement of track limits at the white line. Three strikes result in a black and white flag, fourth strike is a 5-second penalty." },
       { id: 4, title: "Safety Car Procedures", category: "Sporting", summary: "Lapped cars may unlap themselves once the track is declared safe. The safety car will return to the pits at the end of the following lap." }
     ]);
+  });
+
+  // AI Strategy Predictor Endpoint
+  app.post("/api/ai/strategy", async (req, res) => {
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not configured in the environment." });
+      }
+
+      const { promptData } = req.body;
+      if (!promptData) {
+        return res.status(400).json({ error: "Missing promptData in request body." });
+      }
+
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: `You are an expert F1 Race Strategist. Based on the following race data, provide a concise, high-level race strategy prediction and analysis. Discuss likely pit stop strategies (1-stop vs 2-stop), optimal tyre choices (Softs, Mediums, Hards), undercut potential, and track-specific factors (e.g., tyre degradation, overtaking difficulty). Keep it under 200 words, use a professional but engaging tone, and format the response with bullet points if helpful.
+
+Event Data Context:
+${promptData}`
+      });
+
+      res.json({ suggestion: response.text });
+    } catch (error: any) {
+      console.error("AI Strategy Error:", error);
+      res.status(500).json({ error: "Failed to generate AI strategy. Please try again later." });
+    }
   });
 
   // Vite middleware for development
