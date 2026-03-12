@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Loader2, Activity } from 'lucide-react';
+import { Loader2, Activity, Clock } from 'lucide-react';
 import axios from 'axios';
 import { useRaceSelector } from '../hooks/useRaceSelector';
 import RaceSelector from '../components/RaceSelector';
@@ -9,6 +9,10 @@ import type { TelemetryPoint, CarData, LapData } from '../types';
 export default function Telemetry() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<TelemetryPoint[]>([]);
+  const [laps1, setLaps1] = useState<LapData[]>([]);
+  const [laps2, setLaps2] = useState<LapData[]>([]);
+  const [driver1LapReq, setDriver1LapReq] = useState<string>('fastest');
+  const [driver2LapReq, setDriver2LapReq] = useState<string>('fastest');
 
   const selector = useRaceSelector();
 
@@ -29,29 +33,48 @@ export default function Telemetry() {
       if (validLaps1.length === 0 || validLaps2.length === 0) {
         console.warn("No valid laps found for one or both drivers.");
         setData([]);
+        setLaps1([]);
+        setLaps2([]);
         setLoading(false);
         return;
       }
 
-      // Find fastest lap for each driver
-      const fastestLap1 = validLaps1.reduce((min, p) => (p.lap_duration! < min.lap_duration! ? p : min), validLaps1[0]);
-      const fastestLap2 = validLaps2.reduce((min, p) => (p.lap_duration! < min.lap_duration! ? p : min), validLaps2[0]);
+      setLaps1(validLaps1);
+      setLaps2(validLaps2);
+
+      // Find selected lap for driver 1
+      let targetLap1: LapData;
+      if (driver1LapReq === 'fastest') {
+        targetLap1 = validLaps1.reduce((min, p) => (p.lap_duration! < min.lap_duration! ? p : min), validLaps1[0]);
+      } else {
+        const lapNum = parseInt(driver1LapReq);
+        targetLap1 = validLaps1.find(l => l.lap_number === lapNum) || validLaps1.reduce((min, p) => (p.lap_duration! < min.lap_duration! ? p : min), validLaps1[0]);
+      }
+
+      // Find selected lap for driver 2
+      let targetLap2: LapData;
+      if (driver2LapReq === 'fastest') {
+        targetLap2 = validLaps2.reduce((min, p) => (p.lap_duration! < min.lap_duration! ? p : min), validLaps2[0]);
+      } else {
+        const lapNum = parseInt(driver2LapReq);
+        targetLap2 = validLaps2.find(l => l.lap_number === lapNum) || validLaps2.reduce((min, p) => (p.lap_duration! < min.lap_duration! ? p : min), validLaps2[0]);
+      }
 
       // Calculate end time for the lap
-      const endTime1 = new Date(new Date(fastestLap1.date_start).getTime() + fastestLap1.lap_duration! * 1000).toISOString();
-      const endTime2 = new Date(new Date(fastestLap2.date_start).getTime() + fastestLap2.lap_duration! * 1000).toISOString();
+      const endTime1 = new Date(new Date(targetLap1.date_start).getTime() + targetLap1.lap_duration! * 1000).toISOString();
+      const endTime2 = new Date(new Date(targetLap2.date_start).getTime() + targetLap2.lap_duration! * 1000).toISOString();
 
-      // 2. Fetch car data for the specific time window of the fastest lap (sequential to avoid 429)
-      const res1 = await axios.get(`/api/openf1/car_data?driver_number=${selector.driver1}&session_key=${selector.sessionKey}&date>=${fastestLap1.date_start}&date<=${endTime1}`);
-      const res2 = await axios.get(`/api/openf1/car_data?driver_number=${selector.driver2}&session_key=${selector.sessionKey}&date>=${fastestLap2.date_start}&date<=${endTime2}`);
+      // 2. Fetch car data for the specific time window of the target lap
+      const res1 = await axios.get(`/api/openf1/car_data?driver_number=${selector.driver1}&session_key=${selector.sessionKey}&date>=${targetLap1.date_start}&date<=${endTime1}`);
+      const res2 = await axios.get(`/api/openf1/car_data?driver_number=${selector.driver2}&session_key=${selector.sessionKey}&date>=${targetLap2.date_start}&date<=${endTime2}`);
 
       const d1 = res1.data as CarData[];
       const d2 = res2.data as CarData[];
 
       if (d1.length > 0 && d2.length > 0) {
         const mergedData: TelemetryPoint[] = [];
-        const startTime1 = new Date(fastestLap1.date_start).getTime();
-        const startTime2 = new Date(fastestLap2.date_start).getTime();
+        const startTime1 = new Date(targetLap1.date_start).getTime();
+        const startTime2 = new Date(targetLap2.date_start).getTime();
 
         let j = 0;
         for (let i = 0; i < d1.length; i++) {
@@ -101,6 +124,13 @@ export default function Telemetry() {
   const d1Name = selector.d1Info?.name_acronym || selector.driver1;
   const d2Name = selector.d2Info?.name_acronym || selector.driver2;
 
+  const formatLapTime = (duration?: number) => {
+    if (!duration) return 'N/A';
+    const mins = Math.floor(duration / 60);
+    const secs = (duration % 60).toFixed(3);
+    return `${mins}:${secs.padStart(6, '0')}`;
+  };
+
   return (
     <div className="h-full flex flex-col space-y-6">
       <div className="flex flex-col space-y-4">
@@ -114,6 +144,63 @@ export default function Telemetry() {
           loading={loading}
           onAnalyze={fetchTelemetry}
         />
+
+        {/* Lap Selectors */}
+        {(laps1.length > 0 || laps2.length > 0) && data.length > 0 && !loading && (
+          <div className="flex gap-4 p-4 bg-zinc-900 border border-zinc-800 rounded-2xl">
+            <div className="flex-1">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">{d1Name} Lap</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <Clock className="h-4 w-4 text-blue-500" />
+                </div>
+                <select
+                  value={driver1LapReq}
+                  onChange={(e) => setDriver1LapReq(e.target.value)}
+                  className="w-full bg-zinc-950 text-zinc-100 border border-zinc-800 rounded-lg pl-9 pr-8 py-2.5 text-sm font-bold focus:outline-none focus:border-blue-500/50 appearance-none"
+                >
+                  <option value="fastest">Fastest Lap</option>
+                  {laps1.map(lap => (
+                    <option key={lap.lap_number} value={lap.lap_number.toString()}>
+                      Lap {lap.lap_number} ({formatLapTime(lap.lap_duration)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex-1">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">{d2Name} Lap</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <Clock className="h-4 w-4 text-red-500" />
+                </div>
+                <select
+                  value={driver2LapReq}
+                  onChange={(e) => setDriver2LapReq(e.target.value)}
+                  className="w-full bg-zinc-950 text-zinc-100 border border-zinc-800 rounded-lg pl-9 pr-8 py-2.5 text-sm font-bold focus:outline-none focus:border-red-500/50 appearance-none"
+                >
+                  <option value="fastest">Fastest Lap</option>
+                  {laps2.map(lap => (
+                    <option key={lap.lap_number} value={lap.lap_number.toString()}>
+                      Lap {lap.lap_number} ({formatLapTime(lap.lap_duration)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-end flex-none pt-4">
+               <button 
+                  onClick={fetchTelemetry}
+                  disabled={loading}
+                  className="h-[42px] px-6 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-lg transition-colors border border-zinc-700 whitespace-nowrap"
+               >
+                 Compare Details
+               </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {data.length > 0 ? (
