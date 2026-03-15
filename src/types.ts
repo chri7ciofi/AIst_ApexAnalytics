@@ -66,6 +66,10 @@ export interface Stint {
 export interface RaceSession {
   name: string;
   date: string;
+  timeLocal?: string;
+  dayLocal?: string;
+  timeCET?: string;
+  dayCET?: string;
 }
 
 export interface Race {
@@ -74,6 +78,7 @@ export interface Race {
   circuit: string;
   date: string;
   timezone: string;
+  isSprint?: boolean;
   length: number;
   drsZones: number;
   record: string;

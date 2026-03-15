@@ -216,9 +216,9 @@ export default function Telemetry() {
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" strokeOpacity={0.4} vertical={false} />
                   <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
-                  <YAxis domain={['auto', 'auto']} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}`} width={40} />
+                  <YAxis domain={['auto', 'auto']} stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} width={30} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
@@ -243,19 +243,19 @@ export default function Telemetry() {
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" strokeOpacity={0.4} vertical={false} />
                   <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} hide />
-                  <YAxis domain={[0, 100]} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} width={40} />
+                  <YAxis domain={[-5, 105]} stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} width={30} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
                     labelStyle={{ display: 'none' }}
                   />
                   <Legend verticalAlign="top" height={36} iconType="circle" />
-                  <Line type="stepAfter" dataKey="throttle1" stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Throttle ${d1Name}`} />
-                  <Line type="stepAfter" dataKey="throttle2" stroke="#ef4444" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Throttle ${d2Name}`} />
-                  <Line type="stepAfter" dataKey="brake1" stroke="#60a5fa" strokeDasharray="4 4" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Brake ${d1Name}`} />
-                  <Line type="stepAfter" dataKey="brake2" stroke="#f87171" strokeDasharray="4 4" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Brake ${d2Name}`} />
+                  <Line type="monotone" dataKey="throttle1" stroke="#3b82f6" strokeWidth={2.5} dot={false} activeDot={false} name={`Throttle ${d1Name}`} />
+                  <Line type="monotone" dataKey="throttle2" stroke="#ef4444" strokeWidth={2.5} dot={false} activeDot={false} name={`Throttle ${d2Name}`} />
+                  <Line type="stepAfter" dataKey="brake1" stroke="#60a5fa" strokeDasharray="4 4" strokeWidth={2.5} dot={false} activeDot={false} name={`Brake ${d1Name}`} />
+                  <Line type="stepAfter" dataKey="brake2" stroke="#f87171" strokeDasharray="4 4" strokeWidth={2.5} dot={false} activeDot={false} name={`Brake ${d2Name}`} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -272,10 +272,10 @@ export default function Telemetry() {
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} syncId="telemetry" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                  <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} stroke="#52525b" fontSize={12} tickFormatter={(val) => `${val}s`} />
-                  <YAxis yAxisId="left" domain={['auto', 'auto']} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} width={40} />
-                  <YAxis yAxisId="right" orientation="right" domain={[0, 8]} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} width={20} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" strokeOpacity={0.4} vertical={false} />
+                  <XAxis dataKey="time" type="number" domain={['dataMin', 'dataMax']} stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}s`} />
+                  <YAxis yAxisId="left" domain={['auto', 'auto']} stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} width={40} />
+                  <YAxis yAxisId="right" orientation="right" domain={[0, 9]} stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} width={20} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
@@ -283,10 +283,10 @@ export default function Telemetry() {
                     labelFormatter={(label) => `Time: ${label}s`}
                   />
                   <Legend verticalAlign="top" height={36} iconType="circle" />
-                  <Line yAxisId="left" type="monotone" dataKey="rpm1" stroke="#3b82f6" strokeWidth={1.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`RPM ${d1Name}`} />
-                  <Line yAxisId="left" type="monotone" dataKey="rpm2" stroke="#ef4444" strokeWidth={1.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`RPM ${d2Name}`} />
-                  <Line yAxisId="right" type="stepAfter" dataKey="gear1" stroke="#93c5fd" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Gear ${d1Name}`} />
-                  <Line yAxisId="right" type="stepAfter" dataKey="gear2" stroke="#fca5a5" strokeWidth={2.5} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} name={`Gear ${d2Name}`} />
+                  <Line yAxisId="left" type="monotone" dataKey="rpm1" stroke="#3b82f6" strokeWidth={1.5} dot={false} activeDot={false} name={`RPM ${d1Name}`} />
+                  <Line yAxisId="left" type="monotone" dataKey="rpm2" stroke="#ef4444" strokeWidth={1.5} dot={false} activeDot={false} name={`RPM ${d2Name}`} />
+                  <Line yAxisId="right" type="stepAfter" dataKey="gear1" stroke="#93c5fd" strokeWidth={2.5} dot={false} activeDot={false} name={`Gear ${d1Name}`} />
+                  <Line yAxisId="right" type="stepAfter" dataKey="gear2" stroke="#fca5a5" strokeWidth={2.5} dot={false} activeDot={false} name={`Gear ${d2Name}`} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

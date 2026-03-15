@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, MapPin, Flag, Clock, ChevronRight, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Flag, Clock, ChevronRight, Loader2, Zap } from 'lucide-react';
 import { format, formatDistanceToNow, isFuture } from 'date-fns';
 import axios from 'axios';
 import type { Race } from '../types';
@@ -90,7 +90,14 @@ export default function Calendar() {
                 >
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider mb-1 opacity-70">Round {race.round}</p>
-                    <p className={`font-medium ${selectedRace?.round === race.round ? 'text-red-400' : 'text-zinc-200'}`}>{race.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className={`font-medium ${selectedRace?.round === race.round ? 'text-red-400' : 'text-zinc-200'}`}>{race.name}</p>
+                      {race.isSprint && (
+                        <span className="bg-yellow-500/15 text-yellow-400 text-[10px] font-black uppercase px-1.5 py-0.5 rounded-md border border-yellow-500/25 flex items-center gap-0.5">
+                          <Zap size={10} />Sprint
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs mt-1 flex items-center opacity-70">
                       <Clock size={12} className="mr-1" />
                       {format(new Date(race.date), 'MMM d, yyyy')}
@@ -144,14 +151,9 @@ export default function Calendar() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
                     {selectedRace.sessions.map((session, idx) => {
-                      const sessionDate = new Date(session.date);
-                      const localTime = selectedRace.timezone
-                        ? sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: selectedRace.timezone, hour12: false })
-                        : sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-                      const cetTime = sessionDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
-                      const dayName = selectedRace.timezone
-                        ? sessionDate.toLocaleDateString('en-GB', { weekday: 'long', timeZone: selectedRace.timezone })
-                        : sessionDate.toLocaleDateString('en-GB', { weekday: 'long' });
+                      const localTime = session.timeLocal || new Date(session.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+                      const cetTime = session.timeCET || new Date(session.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris', hour12: false });
+                      const dayName = session.dayLocal || new Date(session.date).toLocaleDateString('en-GB', { weekday: 'long' });
 
                       return (
                         <div key={idx} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex justify-between items-center">

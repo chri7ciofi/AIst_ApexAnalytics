@@ -261,9 +261,9 @@ Observed Pit Window: Around lap ${currentP}.
             <div className="flex-1 min-h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={lapsData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                  <XAxis dataKey="lap" stroke="#52525b" fontSize={12} label={{ value: 'Lap Number', position: 'insideBottom', offset: -10, fill: '#a1a1aa', fontSize: 12 }} />
-                  <YAxis domain={['auto', 'auto']} padding={{ top: 20, bottom: 20 }} stroke="#52525b" fontSize={12} tickFormatter={(val) => formatTime(val)} width={60} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" strokeOpacity={0.4} vertical={false} />
+                  <XAxis dataKey="lap" stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} label={{ value: 'Lap Number', position: 'insideBottom', offset: -10, fill: '#71717a', fontSize: 11 }} />
+                  <YAxis domain={['auto', 'auto']} stroke="#52525b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => formatTime(val)} width={50} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
@@ -274,12 +274,12 @@ Observed Pit Window: Around lap ${currentP}.
                   <Legend verticalAlign="top" height={36} iconType="circle" />
 
                   {/* Actual Lap Times */}
-                  <Line type="monotone" dataKey="time1" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} name={`${d1Name} Actual`} connectNulls />
-                  <Line type="monotone" dataKey="time2" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 4, fill: '#ef4444', strokeWidth: 0 }} activeDot={{ r: 7, strokeWidth: 0 }} name={`${d2Name} Actual`} connectNulls />
+                  <Line type="monotone" dataKey="time1" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3, fill: '#18181b', stroke: '#3b82f6', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#3b82f6', strokeWidth: 0 }} name={`${d1Name}`} connectNulls />
+                  <Line type="monotone" dataKey="time2" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3, fill: '#18181b', stroke: '#ef4444', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#ef4444', strokeWidth: 0 }} name={`${d2Name}`} connectNulls />
 
-                  {/* Trend Lines */}
-                  <Line type="monotone" dataKey="trend1" stroke="#93c5fd" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={false} name={`${d1Name} Trend`} connectNulls />
-                  <Line type="monotone" dataKey="trend2" stroke="#fca5a5" strokeWidth={2.5} strokeDasharray="5 5" dot={false} activeDot={false} name={`${d2Name} Trend`} connectNulls />
+                  {/* Trend Lines (Thinner and faded) */}
+                  <Line type="monotone" dataKey="trend1" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4 4" strokeOpacity={0.4} dot={false} activeDot={false} name={`${d1Name} Trend`} connectNulls />
+                  <Line type="monotone" dataKey="trend2" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4 4" strokeOpacity={0.4} dot={false} activeDot={false} name={`${d2Name} Trend`} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
             </div>

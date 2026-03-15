@@ -3,6 +3,16 @@ import { Trophy, Medal, Award, Crown, Loader2, AlertTriangle, ChevronRight, Cale
 import axios from 'axios';
 import { ErgastResponse, ErgastDriverStanding, ErgastConstructorStanding } from '../types';
 
+const nationalityToCode: Record<string, string> = {
+  British: 'gb', Dutch: 'nl', Spanish: 'es', Monegasque: 'mc', German: 'de',
+  Mexican: 'mx', Australian: 'au', Finnish: 'fi', French: 'fr', Canadian: 'ca',
+  Japanese: 'jp', Thai: 'th', Chinese: 'cn', Danish: 'dk', American: 'us',
+  Italian: 'it', Brazilian: 'br', 'New Zealander': 'nz', Austrian: 'at',
+  Swiss: 'ch', Belgian: 'be', Argentine: 'ar', Swedish: 'se', Polish: 'pl',
+  Russian: 'ru', Indonesian: 'id', Israeli: 'il', Indian: 'in', Colombian: 'co',
+  Venezuelan: 've', Portuguese: 'pt', Irish: 'ie', Norwegian: 'no',
+};
+
 interface DriverStanding {
   position: number;
   driver_number: number;
@@ -243,7 +253,7 @@ export default function Standings() {
                       <div className="flex items-center gap-3">
                         {standing.isChampion && <Crown size={16} className="text-yellow-500 drop-shadow-md" />}
                         <img 
-                          src={`https://flagcdn.com/w20/${standing.country_code.toLowerCase() === 'british' ? 'gb' : standing.country_code.toLowerCase() === 'dutch' ? 'nl' : standing.country_code.toLowerCase() === 'monegasque' ? 'mc' : standing.country_code.toLowerCase() === 'spanish' ? 'es' : 'un'}.png`}
+                          src={`https://flagcdn.com/w20/${nationalityToCode[standing.country_code] || 'un'}.png`}
                           alt="flag"
                           className="w-5 h-auto rounded-sm opacity-60 group-hover:opacity-100 transition-opacity"
                           onError={(e: any) => e.target.style.display = 'none'}

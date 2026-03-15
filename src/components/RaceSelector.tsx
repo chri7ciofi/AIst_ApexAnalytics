@@ -1,6 +1,5 @@
 import { Loader2, Play, Calendar, Flag, Users } from 'lucide-react';
 import type { Meeting, Session, Driver } from '../types';
-import { formatSessionTime } from '../hooks/useRaceSelector';
 
 interface RaceSelectorProps {
   year: string;
@@ -39,123 +38,104 @@ export default function RaceSelector({
   const isDisabled = loading || loadingOptions;
 
   return (
-    <div className="bg-zinc-900/50 p-5 rounded-2xl border border-zinc-800/80 backdrop-blur-sm space-y-4">
+    <div className="bg-zinc-900/60 p-2.5 rounded-2xl border border-zinc-800/80 backdrop-blur-md shadow-lg flex flex-col xl:flex-row gap-2.5 w-full relative z-10">
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
+        <div className="absolute -top-12 left-0 right-0 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-2 animate-fade-in-up">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
-        {/* Event Selection */}
-        <div className="lg:col-span-5 space-y-2">
-          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Calendar size={14} /> Event Details
-          </label>
-          <div className="flex gap-2">
+      <div className="flex flex-col md:flex-row gap-2.5 flex-1 p-0.5">
+        {/* Event Group */}
+        <div className="flex flex-1 bg-zinc-950/50 rounded-xl justify-stretch border border-zinc-800/60 hover:border-zinc-700 focus-within:border-zinc-500 transition-colors">
+          <div className="flex items-center pl-3 pr-1 text-zinc-500 shrink-0"><Calendar size={16} /></div>
+          <select
+            value={year}
+            onChange={e => setYear(e.target.value)}
+            disabled={isDisabled}
+            className="bg-transparent text-sm font-semibold focus:outline-none py-2.5 px-2 cursor-pointer appearance-none shrink-0"
+          >
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+          </select>
+          {!hideMeeting && <div className="w-px h-5 bg-zinc-800 self-center mx-1"></div>}
+          {!hideMeeting && (
             <select
-              value={year}
-              onChange={e => setYear(e.target.value)}
-              disabled={isDisabled}
-              className="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
+              value={meetingKey}
+              onChange={e => setMeetingKey(e.target.value)}
+              disabled={isDisabled || meetings.length === 0}
+              className="bg-transparent text-sm font-semibold focus:outline-none py-2.5 pl-2 pr-6 appearance-none flex-1 truncate cursor-pointer w-[120px] md:w-auto"
             >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
-              <option value="2023">2023</option>
-              <option value="2022">2022</option>
+              {meetings.length === 0 && <option value="">No meetings</option>}
+              {meetings.map(m => (
+                <option key={m.meeting_key} value={m.meeting_key}>{m.meeting_name}</option>
+              ))}
             </select>
-            {!hideMeeting && ( // Conditional rendering based on hideMeeting
-              <select
-                value={meetingKey}
-                onChange={e => setMeetingKey(e.target.value)}
-                disabled={isDisabled || meetings.length === 0}
-                className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium truncate"
-              >
-                {meetings.length === 0 && <option value="">No meetings found</option>}
-                {meetings.map((m) => (
-                  <option key={m.meeting_key} value={m.meeting_key}>
-                    {m.meeting_name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Session Selection */}
-        {!hideMeeting && ( // Conditional rendering based on hideMeeting
-          <div className="lg:col-span-3 space-y-2">
-            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Flag size={14} /> Session
-            </label>
+        {/* Session Group */}
+        {!hideMeeting && (
+          <div className="flex bg-zinc-950/50 rounded-xl justify-stretch border border-zinc-800/60 hover:border-zinc-700 focus-within:border-zinc-500 transition-colors xl:w-48">
+            <div className="flex items-center pl-3 pr-1 text-zinc-500 shrink-0"><Flag size={16} /></div>
             <select
               value={sessionKey}
               onChange={e => setSessionKey(e.target.value)}
               disabled={isDisabled || sessions.length === 0}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-50 transition-all font-medium"
+              className="bg-transparent text-sm font-semibold focus:outline-none py-2.5 pl-2 pr-8 appearance-none flex-1 cursor-pointer w-full truncate"
             >
-              {sessions.length === 0 && <option value="">No sessions found</option>}
-              {sessions.map((s) => {
-                const selectedMeeting = meetings.find(m => m.meeting_key.toString() === meetingKey);
-                return (
-                  <option key={s.session_key} value={s.session_key}>
-                    {s.session_name} {formatSessionTime(s.date_start, selectedMeeting?.gmt_offset)}
-                  </option>
-                );
-              })}
+              {sessions.length === 0 && <option value="">No sessions</option>}
+              {sessions.map(s => (
+                <option key={s.session_key} value={s.session_key}>{s.session_name}</option>
+              ))}
             </select>
           </div>
         )}
 
-        {/* Driver Comparison & Action */}
-        <div className="lg:col-span-4 space-y-2">
-          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Users size={14} /> Compare Drivers
-          </label>
-          <div className="flex gap-3 items-center">
-            <select
-              value={driver1}
-              onChange={e => setDriver1(e.target.value)}
-              disabled={isDisabled || drivers.length === 0}
-              className="flex-1 bg-blue-950/20 border border-blue-900/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-blue-400 font-bold disabled:opacity-50 transition-all"
-            >
-              {drivers.length === 0 && <option value="">No drivers</option>}
-              {drivers.map((d) => (
-                <option key={`d1-${d.driver_number}`} value={d.driver_number}>
-                  {d.name_acronym} ({d.driver_number})
-                </option>
-              ))}
-            </select>
+        {/* Drivers Group */}
+        <div className="flex bg-zinc-950/50 rounded-xl justify-stretch border border-zinc-800/60 hover:border-zinc-700 focus-within:border-zinc-500 transition-colors xl:w-[280px]">
+          <div className="flex items-center pl-3 pr-1 text-zinc-500 shrink-0"><Users size={16} /></div>
+          <select
+            value={driver1}
+            onChange={e => setDriver1(e.target.value)}
+            disabled={isDisabled || drivers.length === 0}
+            className="bg-transparent text-sm font-bold text-blue-400 focus:outline-none py-2.5 pl-2 pr-5 appearance-none flex-1 cursor-pointer w-[80px]"
+          >
+            {drivers.length === 0 && <option value="">---</option>}
+            {drivers.map(d => (
+              <option key={`d1-${d.driver_number}`} value={d.driver_number}>{d.name_acronym} ({d.driver_number})</option>
+            ))}
+          </select>
+          
+          <span className="text-[10px] font-black italic text-zinc-600 self-center px-1">VS</span>
 
-            <span className="text-zinc-600 font-black italic text-sm">VS</span>
-
-            <select
-              value={driver2}
-              onChange={e => setDriver2(e.target.value)}
-              disabled={isDisabled || drivers.length === 0}
-              className="flex-1 bg-red-950/20 border border-red-900/50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-red-500 font-bold disabled:opacity-50 transition-all"
-            >
-              {drivers.length === 0 && <option value="">No drivers</option>}
-              {drivers.map((d) => (
-                <option key={`d2-${d.driver_number}`} value={d.driver_number}>
-                  {d.name_acronym} ({d.driver_number})
-                </option>
-              ))}
-            </select>
-
-            <button
-              onClick={onAnalyze}
-              disabled={analyzeDisabled || isDisabled || !sessionKey || !driver1 || !driver2}
-              className="bg-zinc-100 hover:bg-white text-zinc-900 disabled:bg-zinc-800 disabled:text-zinc-500 px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:shadow-none"
-            >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} className="mr-1.5" />}
-              {loading ? '' : analyzeLabel}
-            </button>
-          </div>
+          <select
+            value={driver2}
+            onChange={e => setDriver2(e.target.value)}
+            disabled={isDisabled || drivers.length === 0}
+            className="bg-transparent text-sm font-bold text-red-500 focus:outline-none py-2.5 pl-2 pr-5 appearance-none flex-1 cursor-pointer text-right w-[80px]"
+            dir="rtl"
+          >
+            {drivers.length === 0 && <option value="">---</option>}
+            {drivers.map(d => (
+              <option key={`d2-${d.driver_number}`} value={d.driver_number}>{d.name_acronym} ({d.driver_number})</option>
+            ))}
+          </select>
         </div>
       </div>
+
+      <button
+        onClick={onAnalyze}
+        disabled={analyzeDisabled || isDisabled || !sessionKey || !driver1 || !driver2}
+        className="h-[46px] bg-red-600 hover:bg-red-500 text-white disabled:bg-zinc-800 disabled:text-zinc-500 px-6 rounded-xl text-sm font-bold transition-all flex items-center justify-center shadow-lg hover:shadow-red-500/20 disabled:shadow-none shrink-0 border border-red-500/50 disabled:border-transparent mt-2 xl:mt-0"
+      >
+        {loading ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} className="mr-2" />}
+        {loading ? '' : analyzeLabel}
+      </button>
     </div>
   );
 }
