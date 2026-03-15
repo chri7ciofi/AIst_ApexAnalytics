@@ -4,6 +4,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { races2026 } from './src/data/calendar2026';
+import RSSParser from 'rss-parser';
 
 dotenv.config();
 
@@ -68,6 +69,68 @@ async function startServer() {
   // 2026 Calendar — hardcoded from official schedule
   app.get("/api/calendar/2026", (_req, res) => {
     res.json(races2026);
+  });
+
+  // --- RSS News Aggregator ---
+  const rssParser = new RSSParser();
+  let newsCache: { data: any[]; timestamp: number } = { data: [], timestamp: 0 };
+  const NEWS_CACHE_TTL = 43200000; // 12 hours
+
+  const RSS_FEEDS = [
+    { url: "https://it.motorsport.com/rss/f1/news/", source: "Motorsport" },
+    { url: "https://www.formulapassion.it/feed", source: "FormulaPassion" },
+    { url: "https://www.formula1.com/en/latest/all.xml", source: "F1 Official" },
+  ];
+
+  const normalizeTitle = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  const isSimilar = (a: string, b: string) => {
+    const na = normalizeTitle(a), nb = normalizeTitle(b);
+    if (na === nb) return true;
+    const wa = na.split(' '), wb = nb.split(' ');
+    const common = wa.filter(w => wb.includes(w)).length;
+    return common / Math.max(wa.length, wb.length) > 0.7;
+  };
+
+  app.get("/api/news", async (_req, res) => {
+    try {
+      if (Date.now() - newsCache.timestamp < NEWS_CACHE_TTL && newsCache.data.length > 0) {
+        return res.json(newsCache.data);
+      }
+
+      const allItems: any[] = [];
+      for (const feed of RSS_FEEDS) {
+        try {
+          const parsed = await rssParser.parseURL(feed.url);
+          // Only process first 10 per feed to be fast
+          for (const item of (parsed.items || []).slice(0, 10)) {
+            allItems.push({
+              title: item.title || '',
+              link: item.link || '',
+              date: item.isoDate || item.pubDate || '',
+              source: feed.source,
+            });
+          }
+        } catch (e: any) {
+          console.warn(`RSS fetch failed for ${feed.source}:`, e.message);
+        }
+      }
+
+      allItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      const deduped: any[] = [];
+      for (const item of allItems) {
+        if (!deduped.some(d => isSimilar(d.title, item.title))) {
+          deduped.push(item);
+        }
+        if (deduped.length >= 5) break; // We only need the top 5
+      }
+
+      newsCache = { data: deduped, timestamp: Date.now() };
+      res.json(newsCache.data);
+    } catch (error: any) {
+      console.error("News RSS Error:", error.message);
+      res.status(500).json({ error: "Failed to fetch news" });
+    }
   });
   
   // Mock Regulatory Insights

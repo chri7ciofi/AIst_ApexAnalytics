@@ -1,4 +1,4 @@
-import { Activity, Calendar as CalendarIcon, BookOpen, GitMerge, Menu, X, Trophy } from 'lucide-react';
+import { Activity, Calendar as CalendarIcon, BookOpen, GitMerge, Menu, X, Trophy, Newspaper } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +16,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     { id: 'strategy', label: 'Strategy AI', icon: GitMerge },
     { id: 'standings', label: 'Standings', icon: Trophy },
     { id: 'calendar', label: '2026 Calendar', icon: CalendarIcon },
+    { id: 'news', label: 'Latest News', icon: Newspaper },
     { id: 'archive', label: 'Archive & Rules', icon: BookOpen },
   ];
 

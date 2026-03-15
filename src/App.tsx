@@ -6,6 +6,7 @@ import Strategy from './pages/Strategy';
 import Calendar from './pages/Calendar';
 import Archive from './pages/Archive';
 import Standings from './pages/Standings';
+import News from './pages/News';
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -28,6 +29,7 @@ export default function App() {
       case 'strategy': return <Strategy />;
       case 'standings': return <Standings />;
       case 'calendar': return <Calendar />;
+      case 'news': return <News />;
       case 'archive': return <Archive />;
       default: return <Telemetry />;
     }
