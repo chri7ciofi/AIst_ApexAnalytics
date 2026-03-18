@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Trophy, Medal, Award, Crown, Loader2, AlertTriangle, ChevronRight, Calendar, Flag } from 'lucide-react';
+import { Trophy, Medal, Award, Crown, AlertTriangle, ChevronRight, Calendar, Flag } from 'lucide-react';
 import axios from 'axios';
+import F1LoadingLights from '../components/F1LoadingLights';
 import { ErgastResponse, ErgastDriverStanding, ErgastConstructorStanding } from '../types';
 
 const nationalityToCode: Record<string, string> = {
@@ -216,7 +217,7 @@ export default function Standings() {
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 size={48} className="mx-auto text-zinc-700 mb-4 animate-spin" />
+            <F1LoadingLights />
             <p className="text-zinc-500">Loading championship data...</p>
           </div>
         </div>

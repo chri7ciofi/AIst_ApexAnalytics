@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Loader2, Activity, Clock } from 'lucide-react';
+import { Activity, Clock } from 'lucide-react';
 import axios from 'axios';
 import { useRaceSelector } from '../hooks/useRaceSelector';
 import RaceSelector from '../components/RaceSelector';
+import F1LoadingLights from '../components/F1LoadingLights';
 import type { TelemetryPoint, CarData, LapData } from '../types';
 
 export default function Telemetry() {
@@ -296,7 +297,7 @@ export default function Telemetry() {
         <div className="flex-1 flex items-center justify-center border-2 border-dashed border-zinc-800 rounded-2xl">
           <div className="text-center">
             {loading ? (
-              <Loader2 size={48} className="mx-auto text-zinc-700 mb-4 animate-spin" />
+              <F1LoadingLights />
             ) : (
               <Activity size={48} className="mx-auto text-zinc-700 mb-4" />
             )}

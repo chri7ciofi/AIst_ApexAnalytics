@@ -83,37 +83,53 @@ export default function Archive() {
           return;
         }
 
-        // Get laps for a top driver (driver 1 = Verstappen)
-        const lapsRes = await axios.get(`/api/openf1/laps?session_key=${raceSession.session_key}&driver_number=1`);
-        const laps = (lapsRes.data as Array<{ lap_duration: number | null; lap_number: number }>)
+        // Get all laps for the race session to find the fastest
+        const lapsRes = await axios.get(`/api/openf1/laps?session_key=${raceSession.session_key}`);
+        const allLaps = (lapsRes.data as Array<{ lap_duration: number | null; lap_number: number; driver_number: number }>)
           .filter(l => l.lap_duration != null && l.lap_duration > 0);
 
         let avgLapTime = 'N/A';
         let fastestLap = 'N/A';
+        let fastestDriverAcronym = 'N/A';
 
-        if (laps.length > 0) {
-          // Remove outlier laps (>110% of median)
-          const durations = laps.map(l => l.lap_duration!).sort((a, b) => a - b);
+        if (allLaps.length > 0) {
+          // Calculate average from all clean laps
+          const durations = allLaps.map(l => l.lap_duration!).sort((a, b) => a - b);
           const median = durations[Math.floor(durations.length / 2)];
-          const cleanLaps = durations.filter(d => d < median * 1.10);
+          const cleanLaps = allLaps.filter(l => l.lap_duration! < median * 1.10);
 
           if (cleanLaps.length > 0) {
-            const avg = cleanLaps.reduce((a, b) => a + b, 0) / cleanLaps.length;
+            const avg = cleanLaps.reduce((sum, l) => sum + l.lap_duration!, 0) / cleanLaps.length;
             const mins = Math.floor(avg / 60);
             const secs = (avg % 60).toFixed(3);
             avgLapTime = `${mins}:${secs.padStart(6, '0')}`;
 
-            const fastest = Math.min(...cleanLaps);
-            const fMins = Math.floor(fastest / 60);
-            const fSecs = (fastest % 60).toFixed(3);
+            // Find absolute fastest lap
+            const absoluteFastest = allLaps.reduce((prev, curr) => 
+              (curr.lap_duration! < prev.lap_duration!) ? curr : prev
+            );
+            
+            const fMins = Math.floor(absoluteFastest.lap_duration! / 60);
+            const fSecs = (absoluteFastest.lap_duration! % 60).toFixed(3);
             fastestLap = `${fMins}:${fSecs.padStart(6, '0')}`;
+
+            // Fetch driver name for the fastest lap
+            try {
+              const driverRes = await axios.get(`/api/openf1/drivers?session_key=${raceSession.session_key}&driver_number=${absoluteFastest.driver_number}`);
+              if (driverRes.data && driverRes.data.length > 0) {
+                fastestDriverAcronym = driverRes.data[0].name_acronym;
+              }
+            } catch (e) {
+              console.warn("Failed to fetch driver info", e);
+              fastestDriverAcronym = `#${absoluteFastest.driver_number}`;
+            }
           }
         }
 
         setCircuitStats({
           totalRaces: sessions.length,
           avgLapTime,
-          fastestDriver: fastestLap,
+          fastestDriver: `${fastestLap} (${fastestDriverAcronym})`,
           sessionInfo: `Data from ${matchingMeeting.meeting_name} 2024`,
         });
       } catch (error) {
@@ -236,7 +252,7 @@ export default function Archive() {
                       <p className="text-2xl font-mono font-bold text-zinc-100">{circuitStats.avgLapTime}</p>
                     </div>
                     <div className="col-span-2 bg-zinc-900 p-4 rounded-lg border border-zinc-800">
-                      <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Fastest Race Lap (VER)</p>
+                      <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Fastest Race Lap</p>
                       <p className="text-2xl font-mono font-bold text-green-400">{circuitStats.fastestDriver}</p>
                     </div>
                   </div>

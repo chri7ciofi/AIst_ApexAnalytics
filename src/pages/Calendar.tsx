@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, MapPin, Flag, Clock, ChevronRight, Loader2, Zap } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Flag, Clock, ChevronRight, Zap } from 'lucide-react';
 import { format, formatDistanceToNow, isFuture } from 'date-fns';
 import axios from 'axios';
+import F1LoadingLights from '../components/F1LoadingLights';
 import type { Race } from '../types';
 
 export default function Calendar() {
@@ -65,7 +66,7 @@ export default function Calendar() {
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="animate-spin text-zinc-500" size={48} />
+          <F1LoadingLights />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
