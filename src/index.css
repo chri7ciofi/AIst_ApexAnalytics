@@ -5,8 +5,12 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #09090b;
+  background-color: #05050a;
+  background-image: radial-gradient(circle at top right, rgba(30, 58, 138, 0.15) 0%, transparent 50%),
+                    radial-gradient(circle at bottom left, rgba(220, 38, 38, 0.1) 0%, transparent 50%);
+  background-attachment: fixed;
   color: #fafafa;
+  min-height: 100vh;
 }
 
 code, .font-mono, [class*="font-mono"] {

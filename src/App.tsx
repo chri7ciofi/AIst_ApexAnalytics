@@ -36,7 +36,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden">
+    <div className="flex h-screen bg-transparent text-zinc-100 overflow-hidden">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <main className="flex-1 overflow-y-auto p-6 lg:p-6 pt-16 lg:pt-6 custom-scrollbar">
         <AnimatePresence mode="wait">

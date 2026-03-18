@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, MapPin, Flag, Clock, ChevronRight, Zap } from 'lucide-react';
 import { format, formatDistanceToNow, isFuture } from 'date-fns';
-import axios from 'axios';
+import { races2026 } from '../data/calendar2026';
 import F1LoadingLights from '../components/F1LoadingLights';
 import type { Race } from '../types';
 
@@ -26,18 +26,9 @@ export default function Calendar() {
   };
 
   useEffect(() => {
-    const fetchCalendar = async () => {
-      try {
-        const res = await axios.get('/api/calendar/2026');
-        setRaces(res.data);
-        setSelectedRace(res.data[0]);
-      } catch (error) {
-        console.error("Failed to fetch calendar", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCalendar();
+    setRaces(races2026);
+    setSelectedRace(races2026[0]);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -112,7 +103,7 @@ export default function Calendar() {
 
           {/* Track Details */}
           {selectedRace && (
-            <div className="lg:col-span-2 bg-zinc-900 rounded-2xl border border-zinc-800 p-6 lg:p-8 flex flex-col overflow-y-auto custom-scrollbar">
+            <div className="lg:col-span-2 bg-zinc-900/40 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl p-6 lg:p-8 flex flex-col overflow-y-auto custom-scrollbar">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-8 gap-4">
                 <div>
                   <p className="text-red-500 font-bold tracking-wider uppercase text-sm mb-2">Round {selectedRace.round}</p>
@@ -129,23 +120,24 @@ export default function Calendar() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 lg:gap-6 mb-8">
-                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800">
-                  <p className="text-xs lg:text-sm text-zinc-500 uppercase tracking-wider mb-2">Circuit Length</p>
+              <div className="grid grid-cols-2 gap-4 lg:gap-6 mb-8">
+                <div className="bg-black/40 p-4 lg:p-6 rounded-2xl border border-white/5">
+                  <p className="text-xs lg:text-[11px] text-zinc-400 font-bold uppercase tracking-widest mb-2">Circuit Length</p>
                   <p className="text-2xl lg:text-3xl font-mono font-bold text-zinc-100">{selectedRace.length} <span className="text-base lg:text-lg text-zinc-500">km</span></p>
                 </div>
-                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800">
-                  <p className="text-xs lg:text-sm text-zinc-500 uppercase tracking-wider mb-2">DRS Zones</p>
+                <div className="bg-black/40 p-4 lg:p-6 rounded-2xl border border-white/5">
+                  <p className="text-xs lg:text-[11px] text-zinc-400 font-bold uppercase tracking-widest mb-2">DRS Zones</p>
                   <p className="text-2xl lg:text-3xl font-mono font-bold text-zinc-100">{selectedRace.drsZones}</p>
-                </div>
-                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800">
-                  <p className="text-xs lg:text-sm text-zinc-500 uppercase tracking-wider mb-2">Lap Record</p>
-                  <p className="text-sm lg:text-lg font-mono font-bold text-zinc-100 leading-tight">{selectedRace.record}</p>
                 </div>
               </div>
 
+              <div className="bg-black/40 p-4 lg:p-6 rounded-2xl border border-white/5 mb-8">
+                <p className="text-xs lg:text-[11px] text-zinc-400 font-bold uppercase tracking-widest mb-2">Lap Record</p>
+                <p className="text-sm lg:text-lg font-mono font-bold text-zinc-100 leading-tight">{selectedRace.record}</p>
+              </div>
+
               {selectedRace.sessions && selectedRace.sessions.length > 0 && (
-                <div className="bg-zinc-950 p-4 lg:p-6 rounded-2xl border border-zinc-800 mb-8">
+                <div className="bg-black/40 p-4 lg:p-6 rounded-2xl border border-white/5 mb-8">
                   <h3 className="text-lg font-bold text-zinc-200 mb-4 flex items-center">
                     <Clock className="mr-2 text-red-500" size={20} />
                     Weekend Schedule

@@ -143,6 +143,49 @@ async function startServer() {
     ]);
   });
 
+  // --- AI Duel Analysis ---
+  app.post("/api/ai/duel", async (req, res) => {
+    try {
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(500).json({ error: "Gemini API key not configured." });
+      }
+      const { driver1, driver2, sessionInfo, speedTrace } = req.body;
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      
+      const prompt = `
+        You are an expert F1 performance engineer. Analyze the following duel during ${sessionInfo}:
+        
+        DRIVER 1 (${driver1.name}):
+        - Best Lap: ${driver1.lapTime}
+        - Sector 1: ${driver1.s1}s, Sector 2: ${driver1.s2}s, Sector 3: ${driver1.s3}s
+        - Max Speed: ${driver1.maxSpeed} km/h
+        
+        DRIVER 2 (${driver2.name}):
+        - Best Lap: ${driver2.lapTime}
+        - Sector 1: ${driver2.s1}s, Sector 2: ${driver2.s2}s, Sector 3: ${driver2.s3}s
+        - Max Speed: ${driver2.maxSpeed} km/h
+
+        SPEED TRACE DATA (Sampled CSV):
+        ${speedTrace}
+        
+        Compare their performances focusing heavily on the SPEED TRACE. 
+        CRITICAL: Based on the speeds in the trace and sectors, suggest SPECIFIC CAR SETUP IMPROVEMENTS for the slower car (e.g., aero balance, downforce levels, gear ratios, suspension stiffness) to match the faster car.
+        Provide a concise 3-paragraph professional report in Italian. Use technical terminology (carico aerodinamico, bilanciamento, trazione, drag).
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: { temperature: 0.0 }
+      });
+
+      res.json({ analysis: response.text });
+    } catch (error: any) {
+      console.error("AI Duel Error:", error);
+      res.status(500).json({ error: "Failed to generate AI analysis." });
+    }
+  });
+
   // AI Strategy Predictor Endpoint (Chatbot Deterministico)
   app.post("/api/ai/strategy", async (req, res) => {
     try {

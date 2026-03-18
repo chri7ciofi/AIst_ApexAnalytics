@@ -60,7 +60,6 @@ export default function RaceSelector({
             <option value="2025">2025</option>
             <option value="2024">2024</option>
             <option value="2023">2023</option>
-            <option value="2022">2022</option>
           </select>
           {!hideMeeting && <div className="w-px h-5 bg-zinc-800 self-center mx-1"></div>}
           {!hideMeeting && (
