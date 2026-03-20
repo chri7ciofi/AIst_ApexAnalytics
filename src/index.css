@@ -66,6 +66,9 @@ select, button, input {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(63, 63, 70, 0.3);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform, backdrop-filter;
 }
 
 /* === Gradient text utility === */

@@ -229,8 +229,8 @@ export default function Standings() {
         </div>
       ) : view === 'drivers' ? (
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
-            <table className="w-full">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-x-auto custom-scrollbar">
+            <table className="w-full min-w-[600px]">
               <thead className="bg-zinc-950/80 sticky top-0 z-10">
                 <tr className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
                   <th className="px-4 py-4 text-left w-16">Pos</th>

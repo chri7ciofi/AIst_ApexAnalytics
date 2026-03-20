@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './components/Sidebar';
-import Telemetry from './pages/Telemetry';
-import Strategy from './pages/Strategy';
-import Calendar from './pages/Calendar';
-import Archive from './pages/Archive';
-import Standings from './pages/Standings';
-import News from './pages/News';
+import F1LoadingLights from './components/F1LoadingLights';
+
+const Telemetry = lazy(() => import('./pages/Telemetry'));
+const Strategy = lazy(() => import('./pages/Strategy'));
+const Calendar = lazy(() => import('./pages/Calendar'));
+const Archive = lazy(() => import('./pages/Archive'));
+const Standings = lazy(() => import('./pages/Standings'));
+const News = lazy(() => import('./pages/News'));
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -49,7 +51,9 @@ export default function App() {
             transition={pageTransition}
             className="h-full"
           >
-            {renderPage()}
+            <Suspense fallback={<div className="h-full flex items-center justify-center"><F1LoadingLights /></div>}>
+              {renderPage()}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>
