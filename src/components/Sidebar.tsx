@@ -1,4 +1,4 @@
-import { Activity, Calendar as CalendarIcon, BookOpen, GitMerge, Menu, X, Trophy, Newspaper } from 'lucide-react';
+import { Activity, Calendar as CalendarIcon, BookOpen, GitMerge, Menu, X, Trophy, Newspaper, Home as HomeIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const tabs = [
+    { id: 'home', label: 'Home Dashboard', icon: HomeIcon },
     { id: 'telemetry', label: 'Telemetry', icon: Activity },
     { id: 'strategy', label: 'Strategy AI', icon: GitMerge },
     { id: 'standings', label: 'Standings', icon: Trophy },

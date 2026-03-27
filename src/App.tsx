@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import F1LoadingLights from './components/F1LoadingLights';
 
+const Home = lazy(() => import('./pages/Home'));
 const Telemetry = lazy(() => import('./pages/Telemetry'));
 const Strategy = lazy(() => import('./pages/Strategy'));
 const Calendar = lazy(() => import('./pages/Calendar'));
@@ -23,10 +24,11 @@ const pageTransition = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('telemetry');
+  const [activeTab, setActiveTab] = useState('home');
 
   const renderPage = () => {
     switch (activeTab) {
+      case 'home': return <Home setActiveTab={setActiveTab} />;
       case 'telemetry': return <Telemetry />;
       case 'strategy': return <Strategy />;
       case 'standings': return <Standings />;
